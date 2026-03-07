@@ -1,0 +1,285 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 100vh;
+}
+
+.centred {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Card ────────────────────────────────────────────────────────── */
+
+.card {
+  background-color: #ffffff;
+  border: 1px solid #cccccc;
+  border-radius: 16px;
+  width: 280px;
+  padding: 48px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  margin-bottom: 32px;
+}
+
+.rule-card {
+  height: 380px;
+  justify-content: space-between;
+}
+
+.character {
+  font-size: 72px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.thai-name {
+  font-size: 20px;
+  color: #222222;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.name-label {
+  font-size: 15px;
+  color: #555555;
+  text-align: center;
+  margin-bottom: 2px;
+  font-style: italic;
+}
+
+.meaning-label {
+  font-size: 13px;
+  color: #888888;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.class-label {
+  font-size: 18px;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.pair-label {
+  font-size: 14px;
+  line-height: 20px;
+  height: 20px;
+  color: #888888;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+/* ── Tonal rule card rows ────────────────────────────────────────── */
+
+.rule-word {
+  height: 82px;
+  font-size: 64px;
+  font-weight: bold;
+  text-align: center;
+  color: #111111;
+  overflow: hidden;
+}
+
+.rule-romanisation {
+  height: 32px;
+  font-size: 22px;
+  font-weight: 600;
+  text-align: center;
+  color: #1a237e;
+  overflow: hidden;
+}
+
+.rule-meaning {
+  height: 22px;
+  font-size: 13px;
+  color: #888888;
+  text-align: center;
+  font-style: italic;
+  overflow: hidden;
+}
+
+.rule-label {
+  height: 22px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  color: #888888;
+  letter-spacing: 0.3px;
+  overflow: hidden;
+}
+
+.rule-consonant {
+  height: 22px;
+  font-size: 14px;
+  color: #555555;
+  text-align: center;
+  overflow: hidden;
+}
+
+.rule-tone-mark {
+  height: 22px;
+  font-size: 14px;
+  color: #555555;
+  text-align: center;
+  overflow: hidden;
+}
+
+.rule-tone {
+  height: 28px;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  color: #2e7d32;
+  overflow: hidden;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+
+.button {
+  width: 140px;
+  text-align: center;
+  background-color: #1565c0;
+  padding: 14px 0;
+  border-radius: 8px;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.button:disabled {
+  background-color: #90a4ae;
+  cursor: default;
+}
+
+.back-button {
+  margin-top: 12px;
+  background-color: #455a64;
+}
+
+.toggle-button {
+  width: 140px;
+  text-align: center;
+  padding: 8px 0;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px solid #1565c0;
+  background: none;
+  color: #1565c0;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.play-button {
+  margin-bottom: 12px;
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 1px solid #1565c0;
+  background: none;
+  color: #1565c0;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.util-row {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.util-button {
+  width: 128px;
+  text-align: center;
+  padding: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #1565c0;
+  background: none;
+  color: #1565c0;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.util-button:disabled {
+  border-color: #90a4ae;
+  color: #90a4ae;
+  cursor: default;
+}
+
+.util-button-back {
+  margin-top: 12px;
+}
+
+.complete-text {
+  font-size: 28px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+/* ── Menu ────────────────────────────────────────────────────────── */
+
+.menu-title {
+  font-size: 36px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 8px;
+  color: #1a237e;
+}
+
+.menu-subtitle {
+  font-size: 16px;
+  color: #666666;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.menu-button {
+  width: 220px;
+  margin-bottom: 16px;
+}

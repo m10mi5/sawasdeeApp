@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native build artifacts
+android/build/
+android/app/build/
+android/app/.cxx/
+android/.gradle/
+android/.idea/
+*.apk
+*.aab
+
+ios/build/
+ios/Pods/
+ios/DerivedData/
+ios/.xcode.env.local
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# Keys & certs
+*.jks
+*.p8
+*.p12
+*.key
+*.keystore
+*.mobileprovision
+android/keystore.properties
+
+# TypeScript
+*.tsbuildinfo
