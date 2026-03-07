@@ -96,7 +96,7 @@ export interface TonalRule {
 }
 ```
 
-### Content — 12 tonal rules
+### Content — 14 tonal rules
 
 Tonal diacritic key: `à` low · `â` falling · `á` high · `ǎ` rising · *(unmarked)* mid
 
@@ -106,6 +106,8 @@ Tonal diacritic key: `à` low · `â` falling · `á` high · `ǎ` rising · *(u
 | Mid Class + Short Vowel | จับ | jàp | to catch | Low Tone |
 | Mid Class + Mai Ek (่) | จ่า | jàa | sergeant | Low Tone |
 | Mid Class + Mai Tho (้) | จ้า | jâa | yes! (emphatic) | Falling Tone |
+| Mid Class + Mai Tri (๊) | โต๊ะ | dtó | table | High Tone |
+| Mid Class + Mai Chattawa (๋) | ก๋วยเตี๋ยว | gǔai dtǐao | noodles | Rising Tone |
 | High Class + Long Vowel | ขา | khǎa | leg | Rising Tone |
 | High Class + Short Vowel | ขับ | khàp | to drive | Low Tone |
 | High Class + Mai Ek (่) | ข่า | khàa | galangal | Low Tone |

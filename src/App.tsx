@@ -135,9 +135,9 @@ function Card({ item, showDetails }: CardProps) {
             </div>
             <div
                 data-testid="rule-tone-mark"
-                className={`rule-tone-mark ${(!showDetails || !item.toneMarkThai) ? 'hidden' : ''}`}
+                className={`rule-tone-mark ${!showDetails ? 'hidden' : ''}`}
             >
-                {item.toneMarkThai} · {item.toneMarkLatin}
+                {item.toneMarkThai ? `${item.toneMarkThai} · ${item.toneMarkLatin}` : '\u00a0'}
             </div>
             <div
                 data-testid="rule-tone"

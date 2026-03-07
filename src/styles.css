@@ -55,7 +55,6 @@ body {
 }
 
 .rule-card {
-  justify-content: space-between;
 }
 
 .character {
@@ -110,59 +109,72 @@ body {
 /* ── Tonal rule card rows ────────────────────────────────────────── */
 
 .rule-word {
-  font-size: clamp(40px, 8dvh, 64px);
+  font-size: clamp(32px, 8dvh, 56px);
   font-weight: bold;
   text-align: center;
   color: #111111;
+  line-height: 67px;
+  height: 67px;
+  margin-bottom: 4px;
   overflow: hidden;
-  line-height: 1.2;
 }
 
 .rule-romanisation {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
+  line-height: 24px;
+  height: 24px;
   text-align: center;
   color: #1a237e;
-  overflow: hidden;
+  margin-bottom: 2px;
 }
 
 .rule-meaning {
   font-size: 13px;
+  line-height: 18px;
+  height: 18px;
   color: #888888;
   text-align: center;
   font-style: italic;
-  overflow: hidden;
+  margin-bottom: 6px;
 }
 
 .rule-label {
   font-size: 13px;
   font-weight: 500;
+  line-height: 18px;
+  height: 18px;
   text-align: center;
   color: #888888;
   letter-spacing: 0.3px;
-  overflow: hidden;
+  margin-bottom: 2px;
 }
 
 .rule-consonant {
   font-size: 14px;
+  line-height: 20px;
+  height: 20px;
   color: #555555;
   text-align: center;
-  overflow: hidden;
+  margin-bottom: 2px;
 }
 
 .rule-tone-mark {
   font-size: 14px;
+  line-height: 20px;
+  height: 20px;
   color: #555555;
   text-align: center;
-  overflow: hidden;
+  margin-bottom: 2px;
 }
 
 .rule-tone {
   font-size: 18px;
   font-weight: bold;
+  line-height: 24px;
+  height: 24px;
   text-align: center;
   color: #2e7d32;
-  overflow: hidden;
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────── */
