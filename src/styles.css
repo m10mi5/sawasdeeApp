@@ -7,14 +7,16 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: #ffffff;
-  min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 #root {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .container {
@@ -22,7 +24,7 @@ body {
   align-items: center;
   justify-content: center;
   flex: 1;
-  min-height: 100vh;
+  height: 100%;
 }
 
 .centred {
@@ -30,6 +32,8 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  max-height: 100dvh;
+  padding: 12px 0;
 }
 
 /* ── Card ────────────────────────────────────────────────────────── */
@@ -39,31 +43,34 @@ body {
   border: 1px solid #cccccc;
   border-radius: 16px;
   width: 280px;
-  padding: 48px 16px;
+  padding: 24px 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  margin-bottom: 32px;
+  margin-bottom: 12px;
+  flex-shrink: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .rule-card {
-  height: 380px;
   justify-content: space-between;
 }
 
 .character {
-  font-size: 72px;
+  font-size: clamp(48px, 10dvh, 72px);
   font-weight: bold;
   text-align: center;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+  line-height: 1.1;
 }
 
 .thai-name {
   font-size: 20px;
   color: #222222;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .name-label {
@@ -103,16 +110,15 @@ body {
 /* ── Tonal rule card rows ────────────────────────────────────────── */
 
 .rule-word {
-  height: 82px;
-  font-size: 64px;
+  font-size: clamp(40px, 8dvh, 64px);
   font-weight: bold;
   text-align: center;
   color: #111111;
   overflow: hidden;
+  line-height: 1.2;
 }
 
 .rule-romanisation {
-  height: 32px;
   font-size: 22px;
   font-weight: 600;
   text-align: center;
@@ -121,7 +127,6 @@ body {
 }
 
 .rule-meaning {
-  height: 22px;
   font-size: 13px;
   color: #888888;
   text-align: center;
@@ -130,7 +135,6 @@ body {
 }
 
 .rule-label {
-  height: 22px;
   font-size: 13px;
   font-weight: 500;
   text-align: center;
@@ -140,7 +144,6 @@ body {
 }
 
 .rule-consonant {
-  height: 22px;
   font-size: 14px;
   color: #555555;
   text-align: center;
@@ -148,7 +151,6 @@ body {
 }
 
 .rule-tone-mark {
-  height: 22px;
   font-size: 14px;
   color: #555555;
   text-align: center;
@@ -156,7 +158,6 @@ body {
 }
 
 .rule-tone {
-  height: 28px;
   font-size: 18px;
   font-weight: bold;
   text-align: center;
@@ -196,8 +197,8 @@ body {
 .toggle-button {
   width: 140px;
   text-align: center;
-  padding: 8px 0;
-  margin-bottom: 16px;
+  padding: 6px 0;
+  margin-bottom: 10px;
   border-radius: 8px;
   border: 1px solid #1565c0;
   background: none;
@@ -208,8 +209,8 @@ body {
 }
 
 .play-button {
-  margin-bottom: 12px;
-  padding: 8px 20px;
+  margin-bottom: 8px;
+  padding: 6px 20px;
   border-radius: 20px;
   border: 1px solid #1565c0;
   background: none;
@@ -229,7 +230,7 @@ body {
   display: flex;
   flex-direction: row;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .util-button {
@@ -252,14 +253,14 @@ body {
 }
 
 .util-button-back {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .complete-text {
   font-size: 28px;
   font-weight: bold;
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 /* ── Menu ────────────────────────────────────────────────────────── */
@@ -282,4 +283,26 @@ body {
 .menu-button {
   width: 220px;
   margin-bottom: 16px;
+}
+
+/* ── Small-height screens (e.g. phones in landscape, short devices) ── */
+
+@media (max-height: 640px) {
+  .card {
+    padding: 12px 12px;
+    margin-bottom: 8px;
+  }
+
+  .button {
+    padding: 10px 0;
+    font-size: 16px;
+  }
+
+  .centred {
+    padding: 6px 0;
+  }
+
+  .menu-subtitle {
+    margin-bottom: 20px;
+  }
 }
