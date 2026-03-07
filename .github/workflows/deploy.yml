@@ -5,9 +5,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -32,7 +30,14 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: build-output
+          name: prod-build
+          path: dist
+
+      - run: npx vite build --base /sawasdeeApp/dev/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dev-build
           path: dist
 
   deploy-dev:
@@ -40,39 +45,40 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: sawasdeeapp-dev
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://m10mi5.github.io/sawasdeeApp/dev/
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: build-output
-          path: dist
+          name: dev-build
+          path: dev-dist
 
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
+      - uses: peaceiris/actions-gh-pages@v4
         with:
-          path: dist
-
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dev-dist
+          destination_dir: dev
 
   deploy-prod:
-    needs: deploy-dev
+    needs: [build, deploy-dev]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://m10mi5.github.io/sawasdeeApp/
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: build-output
-          path: dist
+          name: prod-build
+          path: site
 
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
-          path: dist
+          name: dev-build
+          path: site/dev
+
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
 
       - id: deployment
         uses: actions/deploy-pages@v4
