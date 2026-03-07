@@ -2,13 +2,13 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
 
 permissions:
   contents: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -26,59 +26,39 @@ jobs:
 
       - run: npm run ci
 
-      - run: npm run build
+      - name: Build with correct base path
+        run: |
+          if [ "${{ github.ref_name }}" = "dev" ]; then
+            npx vite build --base /sawasdeeApp/dev/
+          else
+            npx vite build
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: prod-build
+          name: build-output
           path: dist
 
-      - run: npx vite build --base /sawasdeeApp/dev/
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: dev-build
-          path: dist
-
-  deploy-dev:
+  deploy:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: sawasdeeapp-dev
-      url: https://m10mi5.github.io/sawasdeeApp/dev/
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: dev-build
-          path: dev-dist
+          name: build-output
+          path: dist
 
       - uses: peaceiris/actions-gh-pages@v4
+        if: github.ref_name == 'dev'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dev-dist
+          publish_dir: ./dist
           destination_dir: dev
-
-  deploy-prod:
-    needs: [build, deploy-dev]
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: https://m10mi5.github.io/sawasdeeApp/
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: prod-build
-          path: site
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: dev-build
-          path: site/dev
+          keep_files: true
 
       - uses: peaceiris/actions-gh-pages@v4
+        if: github.ref_name == 'main'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
-
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          publish_dir: ./dist
+          keep_files: true
