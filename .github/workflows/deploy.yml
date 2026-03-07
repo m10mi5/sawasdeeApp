@@ -6,60 +6,57 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: pages-${{ github.ref_name }}
+  group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main-src
+
+      - uses: actions/checkout@v4
+        with:
+          ref: dev
+          path: dev-src
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: main-src/package-lock.json
 
-      - run: npm ci
+      - name: Build prod from main
+        working-directory: main-src
+        run: npm ci && npm run ci && npm run build
 
-      - run: npm run ci
+      - name: Build dev from dev branch
+        working-directory: dev-src
+        run: npm ci && npx vite build --base /sawasdeeApp/dev/
 
-      - name: Build with correct base path
+      - name: Combine into one site
         run: |
-          if [ "${{ github.ref_name }}" = "dev" ]; then
-            npx vite build --base /sawasdeeApp/dev/
-          else
-            npx vite build
-          fi
+          mkdir -p site
+          cp -r main-src/dist/* site/
+          mkdir -p site/dev
+          cp -r dev-src/dist/* site/dev/
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: build-output
-          path: dist
+      - uses: actions/configure-pages@v5
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/upload-pages-artifact@v3
         with:
-          name: build-output
-          path: dist
+          path: site
 
-      - uses: peaceiris/actions-gh-pages@v4
-        if: github.ref_name == 'dev'
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          destination_dir: dev
-          keep_files: true
-
-      - uses: peaceiris/actions-gh-pages@v4
-        if: github.ref_name == 'main'
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          keep_files: true
+      - id: deployment
+        uses: actions/deploy-pages@v4
