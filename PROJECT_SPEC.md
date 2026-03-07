@@ -142,7 +142,7 @@ export interface Vowel {
 | 2 | กิ | สระ อิ | Sara I | i | Short | กิน | to eat |
 | 3 | กึ | สระ อึ | Sara Ue | ue | Short | กึก | thud |
 | 4 | กุ | สระ อุ | Sara U | u | Short | กุ้ง | shrimp |
-| 5 | เก็ | สระ เอะ | Sara E | e | Short | เก็บ | to collect |
+| 5 | เกะ | สระ เอะ | Sara E | e | Short | เก็บ | to collect |
 | 6 | แกะ | สระ แอะ | Sara Ae | ae | Short | แกะ | lamb |
 | 7 | โกะ | สระ โอะ | Sara O | o | Short | โต๊ะ | table |
 | 8 | เกาะ | สระ เอาะ | Sara Aw | aw | Short | เกาะ | island |
@@ -153,7 +153,7 @@ export interface Vowel {
 | 13 | เก | สระ เอ | Sara Ee | ee | Long | เก่า | old |
 | 14 | แก | สระ แอ | Sara Aae | aae | Long | แมว | cat |
 | 15 | โก | สระ โอ | Sara Oo | oo | Long | โต | big |
-| 16 | กอ | สระ ออ | Sara Aw | aw | Long | พอ | enough |
+| 16 | กอ | สระ ออ | Sara Aaw | aaw | Long | พอ | enough |
 | 17 | เกีย | สระ เอีย | Sara Ia | ia | Diphthong | เบียร์ | beer |
 | 18 | เกือ | สระ เอือ | Sara Uea | uea | Diphthong | เดือน | month |
 | 19 | กัว | สระ อัว | Sara Ua | ua | Diphthong | วัว | cow |

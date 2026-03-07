@@ -42,7 +42,7 @@ export const VOWELS: Vowel[] = [
         type: 'vowel',
     },
     {
-        symbol: 'เก็', thaiName: 'สระ เอะ', name: 'Sara E',
+        symbol: 'เกะ', thaiName: 'สระ เอะ', name: 'Sara E',
         romanisation: 'e', length: 'Short',
         exampleWord: 'เก็บ', exampleMeaning: 'to collect',
         type: 'vowel',
@@ -110,8 +110,8 @@ export const VOWELS: Vowel[] = [
         type: 'vowel',
     },
     {
-        symbol: 'กอ', thaiName: 'สระ ออ', name: 'Sara Aw',
-        romanisation: 'aw', length: 'Long',
+        symbol: 'กอ', thaiName: 'สระ ออ', name: 'Sara Aaw',
+        romanisation: 'aaw', length: 'Long',
         exampleWord: 'พอ', exampleMeaning: 'enough',
         type: 'vowel',
     },
