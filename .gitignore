@@ -17,3 +17,7 @@ dist/
 
 # TypeScript
 *.tsbuildinfo
+
+# Images
+*.jpeg
+/book/*

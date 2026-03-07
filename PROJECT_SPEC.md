@@ -47,6 +47,7 @@ thaiscript/
     ├── consonants.ts   # CONSONANTS array + Consonant interface
     ├── tonalRules.ts   # TONAL_RULES array + TonalRule interface
     ├── vowels.ts       # VOWELS array + Vowel interface
+    ├── vocabulary.ts   # VOCABULARY array + VocabItem interface
     └── utils.ts        # shuffleArray<T>() pure function
 ```
 
@@ -166,6 +167,36 @@ export interface Vowel {
 
 ---
 
+## Data — `vocabulary.ts`
+
+### Interface
+
+```ts
+export interface VocabItem {
+  latinised: string;            // Romanised pronunciation, e.g. 'sà baai'
+  thai: string;                 // Thai script, e.g. 'สบาย'
+  type: 'word' | 'expression';  // Single word or multi-word phrase
+  english: string;              // English translation, e.g. 'well / comfortable'
+  grammar: string;              // Part of speech: noun, verb, adjective, pronoun, particle, adverb, phrase
+}
+```
+
+### Content — 119 vocabulary items
+
+Sourced from `book/vocabulary.csv`. Covers greetings, pronouns, particles, places, food, travel, numbers, colours, body parts, time, weather, and common expressions.
+
+| Grammar | Approximate count |
+|---|---|
+| noun | ~40 |
+| verb | ~15 |
+| adjective | ~20 |
+| phrase | ~25 |
+| pronoun | ~5 |
+| particle | ~5 |
+| adverb | ~5 |
+
+---
+
 ## Shared Type
 
 ```ts
@@ -217,9 +248,11 @@ Three components live in `App.tsx`:
 |---|---|
 | `App` (default export) | Home screen — routes to practice modes via `mode` state |
 | `ScriptScreen` | Script deck selector — consonants, vowels, tonal rules sub-menu |
-| `PlaceholderScreen` | Generic "Coming soon" screen used by Vocabulary, Speaking, Pronunciation |
+| `PlaceholderScreen` | Generic "Coming soon" screen used by Speaking, Pronunciation |
 | `FlashcardDeck` (named export) | Stateful deck player; receives a `data` array and an `onBack` callback |
 | `Card` | Stateless card renderer; dispatches between consonant, vowel, and rule layouts |
+| `VocabularyDeck` (named export) | Stateful vocabulary deck player; uses `VOCABULARY` data directly |
+| `VocabCard` | Stateless vocabulary card renderer |
 
 ### `App` — Home Screen
 
@@ -235,7 +268,7 @@ Three components live in `App.tsx`:
 |---|---|
 | `'HOME'` | Title ("Sawasdee App"), subtitle "Choose what to practice", four buttons: Script, Vocabulary, Speaking, Pronunciation |
 | `'SCRIPT'` | `<ScriptScreen onBack={() => setMode('HOME')} />` |
-| `'VOCABULARY'` | `<PlaceholderScreen title="Vocabulary" onBack={() => setMode('HOME')} />` |
+| `'VOCABULARY'` | `<VocabularyDeck onBack={() => setMode('HOME')} />` |
 | `'SPEAKING'` | `<PlaceholderScreen title="Speaking" onBack={() => setMode('HOME')} />` |
 | `'PRONUNCIATION'` | `<PlaceholderScreen title="Pronunciation" onBack={() => setMode('HOME')} />` |
 
@@ -262,7 +295,55 @@ Three components live in `App.tsx`:
 
 **Props**: `{ title: string; onBack: () => void }`
 
-Renders the title, "Coming soon" subtitle, and a "Back" button.
+Renders the title, "Coming soon" subtitle, and a "Back" button. Used only by Speaking and Pronunciation modes.
+
+### `VocabularyDeck`
+
+**Props**: `{ onBack: () => void }`
+
+**State**
+
+| Variable | Type | Description |
+|---|---|---|
+| `deck` | `VocabItem[]` | `shuffleArray(VOCABULARY)` — reshuffled on mount and on restart/shuffle |
+| `currentIndex` | `number` | Zero-based index of the card being shown |
+| `showEnglish` | `boolean` | Whether the English translation and grammar are visible (default `false`) |
+
+**Derived**
+
+```ts
+const isDeckComplete = currentIndex >= deck.length;
+```
+
+**Screens**
+
+*Flashcard screen* (shown while `!isDeckComplete`):
+
+- `<VocabCard item={deck[currentIndex]} showEnglish={showEnglish} />`
+- **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
+- **Show/Hide English** toggle — label reads "Hide English" when visible, "Show English" when hidden; `data-testid="toggle-english-btn"`
+- **Previous / Next** row — Previous disabled at index 0
+- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0
+- **Back to Menu** button — calls `onBack`
+
+*Deck Complete screen* (shown when `isDeckComplete`):
+
+- Text: "Deck Complete!"
+- "Start Again" button — reshuffles and resets index
+- "Back to Menu" button — calls `onBack`
+
+### `VocabCard`
+
+**Props**: `{ item: VocabItem; showEnglish: boolean }`
+
+| Element | Detail | data-testid | Always visible |
+|---|---|---|---|
+| Latinised text | `font-size: clamp(22px, 5vw, 32px)`, bold; fixed `height: 40px`, `overflow: hidden` — main card face | — | yes |
+| Thai script | `font-size: 16px`, grey (#555); fixed `height: 22px`, `overflow: hidden` — below latinised | — | yes |
+| English translation | `font-size: 16px`, blue (#1a237e); fixed `height: 22px`, `overflow: hidden`; hidden via CSS class `hidden` when `!showEnglish` | `vocab-english` | no |
+| Grammar label | `font-size: 13px`, italic grey (#888); fixed `height: 18px`, `overflow: hidden`; hidden via CSS class `hidden` when `!showEnglish` | `vocab-grammar` | no |
+
+The vocab card uses CSS classes `.card .vocab-card`. Every row has a fixed `height` and `overflow: hidden`, so card dimensions are identical regardless of text length. The card uses `flex: 1` (inherited from `.card`) to fill available vertical space, same as all other card types.
 
 ### `FlashcardDeck` — Props
 
@@ -310,7 +391,7 @@ Rendered when `'character' in item`:
 
 | Element | Detail |
 |---|---|
-| Thai glyph | `font-size: 72px`, bold, centered |
+| Thai glyph | `font-size: clamp(48px, 10dvh, 72px)`, bold, centered |
 | Thai name | `font-size: 20px`, centered |
 | Romanised name | `data-testid="name-label"`, hidden via CSS class `hidden` (opacity: 0) when `!showDetails` |
 | English meaning | `data-testid="meaning-label"`, hidden via `hidden` class when `!showDetails` |
@@ -323,7 +404,7 @@ Rendered when `item.type === 'vowel'` (after ruling out Consonant):
 
 | Element | Detail | data-testid |
 |---|---|---|
-| Symbol | `symbol` on ก, `font-size: 72px`, bold | — |
+| Symbol | `symbol` on ก, `font-size: clamp(48px, 10dvh, 72px)`, bold | — |
 | Thai name | e.g. สระ อา, `font-size: 20px` | — |
 | Romanised name | e.g. Sara Aa; hidden when `!showDetails` | `vowel-name-label` |
 | Phonetic | e.g. aa; hidden when `!showDetails` | `vowel-romanisation-label` |
@@ -378,10 +459,10 @@ The rule card uses CSS classes `card rule-card` where `rule-card` sets `height: 
 ### Key imports
 
 ```ts
-import App, { FlashcardDeck } from './App';
+import App, { FlashcardDeck, VocabularyDeck } from './App';
 ```
 
-`FlashcardDeck` is tested directly (bypassing the menu) via two helpers:
+`FlashcardDeck` and `VocabularyDeck` are tested directly (bypassing the menu) via helpers:
 
 ```ts
 function renderDeck() {
@@ -389,6 +470,9 @@ function renderDeck() {
 }
 function renderVowelDeck() {
   return render(<FlashcardDeck data={VOWELS} onBack={vi.fn()} />);
+}
+function renderVocabDeck() {
+  return render(<VocabularyDeck onBack={vi.fn()} />);
 }
 ```
 
@@ -402,7 +486,7 @@ function renderVowelDeck() {
 | Preserves all items | Every original item is present in the result |
 | Changes order | After N runs at least one result differs from the original order |
 
-#### 2. `<App />` home screen (11 tests)
+#### 2. `<App />` home screen (12 tests)
 
 | Test | Assertion |
 |---|---|
@@ -413,10 +497,24 @@ function renderVowelDeck() {
 | Navigates to vowels deck via Script | After Script → Practice Vowels, `vowel-length-label` is present |
 | Returns from script menu to home | After Script → Back, home buttons are visible |
 | Returns from deck to script menu | After Script → deck → Back to Menu, script deck buttons visible |
-| Shows placeholder for Vocabulary | After clicking "Vocabulary", "Coming soon" is visible |
+| Shows vocabulary deck | After clicking "Vocabulary", "Show English" toggle is visible |
+| Navigates to vocabulary deck and back | After Vocabulary → Back to Menu, home buttons are visible |
 | Shows placeholder for Speaking | After clicking "Speaking", "Coming soon" is visible |
 | Shows placeholder for Pronunciation | After clicking "Pronunciation", "Coming soon" is visible |
-| Returns from placeholder to home | After placeholder → Back, home buttons are visible |
+| Returns from placeholder to home | After Speaking → Back, home buttons are visible |
+
+#### 2b. `<VocabularyDeck />` (8 tests)
+
+| Test | Assertion |
+|---|---|
+| Shows latinised text | `.vocab-latinised` contains a value from `VOCABULARY` |
+| Shows Thai script | `.vocab-thai` contains a value from `VOCABULARY` |
+| Hides english by default | `vocab-english` and `vocab-grammar` have CSS class `hidden` |
+| Shows english after toggle | After "Show English", `vocab-english` loses `hidden` class |
+| Hides english on re-toggle | After show then "Hide English", `vocab-english` regains `hidden` class |
+| Advances to next card | After Next, `.vocab-latinised` text changes |
+| Speaks Thai on play | `speakThai` called with a value from `VOCABULARY.map(v => v.thai)` |
+| Deck Complete after all cards | After clicking Next 119 times, "Deck Complete!" is visible |
 
 #### 3. `<FlashcardDeck />` rendering (4 tests)
 
@@ -551,7 +649,7 @@ npm run preview
 7. **Exported `FlashcardDeck`** — named export allows tests to render the deck directly without going through the menu, keeping tests focused.
 8. **No navigation library** — views are rendered conditionally via `mode` state; the app has no routing needs.
 9. **No persistence** — restarting the app or refreshing the browser starts a fresh shuffled deck.
-10. **Fixed card width** — the card container uses `width: 280px` so the layout never shifts between characters.
+10. **Full-height cards** — all card types use `flex: 1` to fill the available vertical space, giving a uniform, modern full-screen feel. Cards use `width: calc(100vw - 32px); max-width: 400px` for near-full-width on mobile. Content is vertically centered via `justify-content: center`.
 11. **Opacity-based hide** — detail labels use CSS class `hidden` (opacity: 0) rather than conditional rendering, keeping card height stable when toggling visibility.
 12. **Tonal diacritic romanisation** — romanisations use vowel diacritics to encode tone (`à` low, `â` falling, `á` high, `ǎ` rising, unmarked = mid), matching common Thai-learning conventions. `toneMarkThai`/`toneMarkLatin` are optional fields; the tone-mark row in `Card` is **always rendered** but hidden via `hidden` CSS class when either `!showDetails` or `!item.toneMarkThai`, keeping card height fixed across all rule cards.
 13. **Web Speech API TTS** — `speakThai()` wraps `SpeechSynthesisUtterance` with `lang = 'th'`; no audio asset files are needed. Thai voice availability depends on the user's OS/browser.

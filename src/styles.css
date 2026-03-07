@@ -32,7 +32,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  max-height: 100dvh;
+  height: 100dvh;
   padding: 12px 0;
 }
 
@@ -40,21 +40,23 @@ body {
 
 .card {
   background-color: #ffffff;
-  border: 1px solid #cccccc;
-  border-radius: 16px;
-  width: 280px;
-  padding: 24px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 20px;
+  width: calc(100vw - 32px);
+  max-width: 400px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  margin-bottom: 12px;
-  flex-shrink: 1;
-  min-height: 0;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  margin-bottom: 10px;
+  flex: 1;
   overflow: hidden;
 }
 
 .rule-card {
+  /* same flex:1 as .card */
 }
 
 .character {
@@ -177,17 +179,66 @@ body {
   color: #2e7d32;
 }
 
+/* ── Vocabulary card rows ────────────────────────────────────────── */
+
+.vocab-card {
+  padding: 16px;
+}
+
+.vocab-latinised {
+  font-size: clamp(22px, 5vw, 32px);
+  font-weight: bold;
+  text-align: center;
+  color: #111111;
+  line-height: 40px;
+  height: 40px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.vocab-thai {
+  font-size: 16px;
+  color: #555555;
+  text-align: center;
+  line-height: 22px;
+  height: 22px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.vocab-english {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+  height: 22px;
+  overflow: hidden;
+  text-align: center;
+  color: #1a237e;
+  margin-bottom: 4px;
+}
+
+.vocab-grammar {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  height: 18px;
+  overflow: hidden;
+  text-align: center;
+  color: #888888;
+  font-style: italic;
+}
+
 /* ── Buttons ─────────────────────────────────────────────────────── */
 
 .button {
   width: 140px;
   text-align: center;
   background-color: #1565c0;
-  padding: 14px 0;
+  padding: 12px 0;
   border-radius: 8px;
   border: none;
   color: #ffffff;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -209,25 +260,25 @@ body {
 .toggle-button {
   width: 140px;
   text-align: center;
-  padding: 6px 0;
-  margin-bottom: 10px;
+  padding: 5px 0;
+  margin-bottom: 8px;
   border-radius: 8px;
   border: 1px solid #1565c0;
   background: none;
   color: #1565c0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
 
 .play-button {
-  margin-bottom: 8px;
-  padding: 6px 20px;
+  margin-bottom: 6px;
+  padding: 5px 18px;
   border-radius: 20px;
   border: 1px solid #1565c0;
   background: none;
   color: #1565c0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -242,18 +293,18 @@ body {
   display: flex;
   flex-direction: row;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .util-button {
   width: 128px;
   text-align: center;
-  padding: 8px 0;
+  padding: 6px 0;
   border-radius: 8px;
   border: 1px solid #1565c0;
   background: none;
   color: #1565c0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
 }
@@ -265,7 +316,7 @@ body {
 }
 
 .util-button-back {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .complete-text {
@@ -301,17 +352,17 @@ body {
 
 @media (max-height: 640px) {
   .card {
-    padding: 12px 12px;
-    margin-bottom: 8px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
   }
 
   .button {
-    padding: 10px 0;
-    font-size: 16px;
+    padding: 8px 0;
+    font-size: 14px;
   }
 
   .centred {
-    padding: 6px 0;
+    padding: 4px 0;
   }
 
   .menu-subtitle {

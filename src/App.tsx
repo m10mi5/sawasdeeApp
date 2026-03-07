@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Consonant, CONSONANTS } from './consonants';
 import { TonalRule, TONAL_RULES } from './tonalRules';
 import { Vowel, VOWELS } from './vowels';
+import { VocabItem, VOCABULARY } from './vocabulary';
 import { shuffleArray } from './utils';
 import { speakThai } from './speech';
 
@@ -264,6 +265,135 @@ export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
     );
 }
 
+// ─── Vocabulary card ─────────────────────────────────────────────────────────
+
+interface VocabCardProps {
+    item: VocabItem;
+    showEnglish: boolean;
+}
+
+function VocabCard({ item, showEnglish }: VocabCardProps) {
+    return (
+        <div className="card vocab-card">
+            <div className="vocab-latinised">{item.latinised}</div>
+            <div className="vocab-thai">{item.thai}</div>
+            <div
+                data-testid="vocab-english"
+                className={`vocab-english ${!showEnglish ? 'hidden' : ''}`}
+            >
+                {item.english}
+            </div>
+            <div
+                data-testid="vocab-grammar"
+                className={`vocab-grammar ${!showEnglish ? 'hidden' : ''}`}
+            >
+                {item.grammar}
+            </div>
+        </div>
+    );
+}
+
+// ─── VocabularyDeck component ────────────────────────────────────────────────
+
+export function VocabularyDeck({ onBack }: { onBack: () => void }) {
+    const [deck, setDeck] = useState<VocabItem[]>(() => shuffleArray(VOCABULARY));
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [showEnglish, setShowEnglish] = useState(false);
+
+    const isDeckComplete = currentIndex >= deck.length;
+
+    function handleRestart() {
+        setDeck(shuffleArray(VOCABULARY));
+        setCurrentIndex(0);
+    }
+
+    function handleShuffle() {
+        setDeck(shuffleArray(VOCABULARY));
+        setCurrentIndex(0);
+    }
+
+    function handleBackToStart() {
+        setCurrentIndex(0);
+    }
+
+    function handleSpeak() {
+        speakThai(deck[currentIndex].thai);
+    }
+
+    return (
+        <div className="container">
+            {isDeckComplete ? (
+                <div className="centred">
+                    <div className="complete-text">Deck Complete!</div>
+                    <button className="button" onClick={handleRestart}>
+                        Start Again
+                    </button>
+                    <button className="button back-button" onClick={onBack}>
+                        Back to Menu
+                    </button>
+                </div>
+            ) : (
+                <div className="centred">
+                    <VocabCard item={deck[currentIndex]} showEnglish={showEnglish} />
+                    <button
+                        data-testid="play-btn"
+                        className="play-button"
+                        onClick={handleSpeak}
+                    >
+                        ▶  Listen
+                    </button>
+                    <button
+                        data-testid="toggle-english-btn"
+                        className="toggle-button"
+                        onClick={() => setShowEnglish(v => !v)}
+                    >
+                        {showEnglish ? 'Hide English' : 'Show English'}
+                    </button>
+                    <div className="button-row">
+                        <button
+                            data-testid="prev-btn"
+                            className="button"
+                            disabled={currentIndex === 0}
+                            onClick={() => setCurrentIndex(i => i - 1)}
+                        >
+                            Previous
+                        </button>
+                        <button
+                            className="button"
+                            onClick={() => setCurrentIndex(i => i + 1)}
+                        >
+                            Next
+                        </button>
+                    </div>
+                    <div className="util-row">
+                        <button
+                            data-testid="back-to-start-btn"
+                            className="util-button"
+                            disabled={currentIndex === 0}
+                            onClick={handleBackToStart}
+                        >
+                            Back to Start
+                        </button>
+                        <button
+                            data-testid="shuffle-btn"
+                            className="util-button"
+                            onClick={handleShuffle}
+                        >
+                            Shuffle Deck
+                        </button>
+                    </div>
+                    <button
+                        className="util-button util-button-back"
+                        onClick={onBack}
+                    >
+                        Back to Menu
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Placeholder screen ──────────────────────────────────────────────────────
 
 function PlaceholderScreen({ title, onBack }: { title: string; onBack: () => void }) {
@@ -342,7 +472,7 @@ export default function App() {
     }
 
     if (mode === 'VOCABULARY') {
-        return <PlaceholderScreen title="Vocabulary" onBack={() => setMode('HOME')} />;
+        return <VocabularyDeck onBack={() => setMode('HOME')} />;
     }
 
     if (mode === 'SPEAKING') {
