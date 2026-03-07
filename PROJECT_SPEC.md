@@ -215,26 +215,54 @@ Three components live in `App.tsx`:
 
 | Component | Role |
 |---|---|
-| `App` (default export) | Deck Selector — controls which view is shown via `mode` state |
+| `App` (default export) | Home screen — routes to practice modes via `mode` state |
+| `ScriptScreen` | Script deck selector — consonants, vowels, tonal rules sub-menu |
+| `PlaceholderScreen` | Generic "Coming soon" screen used by Vocabulary, Speaking, Pronunciation |
 | `FlashcardDeck` (named export) | Stateful deck player; receives a `data` array and an `onBack` callback |
 | `Card` | Stateless card renderer; dispatches between consonant, vowel, and rule layouts |
 
-### `App` — Deck Selector
+### `App` — Home Screen
 
 **State**
 
 | Variable | Type | Initial | Description |
 |---|---|---|---|
-| `mode` | `'MENU' \| 'CONSONANTS' \| 'TONAL' \| 'VOWELS'` | `'MENU'` | Controls which view is mounted |
+| `mode` | `'HOME' \| 'SCRIPT' \| 'VOCABULARY' \| 'SPEAKING' \| 'PRONUNCIATION'` | `'HOME'` | Controls which practice mode is shown |
 
 **Rendering**
 
 | `mode` | Renders |
 |---|---|
-| `'MENU'` | Title ("Sawasdee App"), subtitle, "Practice Consonants", "Practice Vowels", "Practice Tone Rules" buttons |
+| `'HOME'` | Title ("Sawasdee App"), subtitle "Choose what to practice", four buttons: Script, Vocabulary, Speaking, Pronunciation |
+| `'SCRIPT'` | `<ScriptScreen onBack={() => setMode('HOME')} />` |
+| `'VOCABULARY'` | `<PlaceholderScreen title="Vocabulary" onBack={() => setMode('HOME')} />` |
+| `'SPEAKING'` | `<PlaceholderScreen title="Speaking" onBack={() => setMode('HOME')} />` |
+| `'PRONUNCIATION'` | `<PlaceholderScreen title="Pronunciation" onBack={() => setMode('HOME')} />` |
+
+### `ScriptScreen` — Deck Selector
+
+**Props**: `{ onBack: () => void }`
+
+**State**
+
+| Variable | Type | Initial | Description |
+|---|---|---|---|
+| `mode` | `'MENU' \| 'CONSONANTS' \| 'TONAL' \| 'VOWELS'` | `'MENU'` | Controls which deck is shown |
+
+**Rendering**
+
+| `mode` | Renders |
+|---|---|
+| `'MENU'` | Title ("Script"), subtitle, "Practice Consonants", "Practice Vowels", "Practice Tone Rules", "Back" buttons |
 | `'CONSONANTS'` | `<FlashcardDeck data={CONSONANTS} onBack={() => setMode('MENU')} />` |
 | `'VOWELS'` | `<FlashcardDeck data={VOWELS} onBack={() => setMode('MENU')} />` |
 | `'TONAL'` | `<FlashcardDeck data={TONAL_RULES} onBack={() => setMode('MENU')} />` |
+
+### `PlaceholderScreen`
+
+**Props**: `{ title: string; onBack: () => void }`
+
+Renders the title, "Coming soon" subtitle, and a "Back" button.
 
 ### `FlashcardDeck` — Props
 
@@ -374,15 +402,21 @@ function renderVowelDeck() {
 | Preserves all items | Every original item is present in the result |
 | Changes order | After N runs at least one result differs from the original order |
 
-#### 2. `<App />` menu (5 tests)
+#### 2. `<App />` home screen (11 tests)
 
 | Test | Assertion |
 |---|---|
-| Shows all three deck buttons on first render | "Practice Consonants", "Practice Vowels", and "Practice Tone Rules" are visible |
-| Navigates to consonant deck | After clicking "Practice Consonants" a Thai glyph is visible |
-| Navigates to tonal rules deck | After clicking "Practice Tone Rules" text matching `/Class \+/` is visible |
-| Navigates to vowels deck | After clicking "Practice Vowels" `vowel-length-label` is present |
-| Returns to menu | After clicking "Back to Menu" all deck buttons are visible again |
+| Shows all four practice buttons on first render | "Script", "Vocabulary", "Speaking", "Pronunciation" are visible |
+| Navigates to script deck menu | After clicking "Script", deck buttons are visible |
+| Navigates to consonant deck via Script | After Script → Practice Consonants, a Thai glyph is visible |
+| Navigates to tonal rules deck via Script | After Script → Practice Tone Rules, `/Class \+/` text is visible |
+| Navigates to vowels deck via Script | After Script → Practice Vowels, `vowel-length-label` is present |
+| Returns from script menu to home | After Script → Back, home buttons are visible |
+| Returns from deck to script menu | After Script → deck → Back to Menu, script deck buttons visible |
+| Shows placeholder for Vocabulary | After clicking "Vocabulary", "Coming soon" is visible |
+| Shows placeholder for Speaking | After clicking "Speaking", "Coming soon" is visible |
+| Shows placeholder for Pronunciation | After clicking "Pronunciation", "Coming soon" is visible |
+| Returns from placeholder to home | After placeholder → Back, home buttons are visible |
 
 #### 3. `<FlashcardDeck />` rendering (4 tests)
 

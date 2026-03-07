@@ -54,40 +54,87 @@ describe('shuffleArray()', () => {
     });
 });
 
-// ── 2. <App /> menu ───────────────────────────────────────────────────────────
+// ── 2. <App /> home screen ────────────────────────────────────────────────────
 
-describe('<App /> menu', () => {
-    it('shows the three deck buttons on first render', () => {
+describe('<App /> home screen', () => {
+    it('shows the four practice buttons on first render', () => {
         const { getByText } = render(<App />);
+        expect(getByText('Script')).toBeTruthy();
+        expect(getByText('Vocabulary')).toBeTruthy();
+        expect(getByText('Speaking')).toBeTruthy();
+        expect(getByText('Pronunciation')).toBeTruthy();
+    });
+
+    it('navigates to the script deck menu when "Script" is pressed', () => {
+        const { getByText } = render(<App />);
+        fireEvent.click(getByText('Script'));
         expect(getByText('Practice Consonants')).toBeTruthy();
         expect(getByText('Practice Vowels')).toBeTruthy();
         expect(getByText('Practice Tone Rules')).toBeTruthy();
     });
 
-    it('navigates to the consonant deck when "Practice Consonants" is pressed', () => {
+    it('navigates to the consonant deck via Script', () => {
         const { getByText } = render(<App />);
+        fireEvent.click(getByText('Script'));
         fireEvent.click(getByText('Practice Consonants'));
         expect(getByText(/^[\u0E00-\u0E7F]$/)).toBeTruthy();
     });
 
-    it('navigates to the tonal rules deck when "Practice Tone Rules" is pressed', () => {
+    it('navigates to the tonal rules deck via Script', () => {
         const { getByText } = render(<App />);
+        fireEvent.click(getByText('Script'));
         fireEvent.click(getByText('Practice Tone Rules'));
         expect(getByText(/Class \+/)).toBeTruthy();
     });
 
-    it('navigates to the vowels deck when "Practice Vowels" is pressed', () => {
+    it('navigates to the vowels deck via Script', () => {
         const { getByText, getByTestId } = render(<App />);
+        fireEvent.click(getByText('Script'));
         fireEvent.click(getByText('Practice Vowels'));
         expect(getByTestId('vowel-length-label')).toBeTruthy();
     });
 
-    it('returns to the menu after pressing "Back to Menu"', () => {
+    it('returns from script deck menu to home via Back', () => {
         const { getByText } = render(<App />);
+        fireEvent.click(getByText('Script'));
+        fireEvent.click(getByText('Back'));
+        expect(getByText('Script')).toBeTruthy();
+        expect(getByText('Vocabulary')).toBeTruthy();
+    });
+
+    it('returns from deck to script menu via Back to Menu', () => {
+        const { getByText } = render(<App />);
+        fireEvent.click(getByText('Script'));
         fireEvent.click(getByText('Practice Consonants'));
         fireEvent.click(getByText('Back to Menu'));
         expect(getByText('Practice Consonants')).toBeTruthy();
         expect(getByText('Practice Tone Rules')).toBeTruthy();
+    });
+
+    it('shows placeholder for Vocabulary', () => {
+        const { getByText } = render(<App />);
+        fireEvent.click(getByText('Vocabulary'));
+        expect(getByText('Coming soon')).toBeTruthy();
+    });
+
+    it('shows placeholder for Speaking', () => {
+        const { getByText } = render(<App />);
+        fireEvent.click(getByText('Speaking'));
+        expect(getByText('Coming soon')).toBeTruthy();
+    });
+
+    it('shows placeholder for Pronunciation', () => {
+        const { getByText } = render(<App />);
+        fireEvent.click(getByText('Pronunciation'));
+        expect(getByText('Coming soon')).toBeTruthy();
+    });
+
+    it('returns from placeholder to home via Back', () => {
+        const { getByText } = render(<App />);
+        fireEvent.click(getByText('Vocabulary'));
+        fireEvent.click(getByText('Back'));
+        expect(getByText('Script')).toBeTruthy();
+        expect(getByText('Pronunciation')).toBeTruthy();
     });
 });
 

@@ -264,10 +264,28 @@ export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
     );
 }
 
-// ─── Root component (Deck Selector) ─────────────────────────────────────────
+// ─── Placeholder screen ──────────────────────────────────────────────────────
 
-export default function App() {
-    const [mode, setMode] = useState<'MENU' | 'CONSONANTS' | 'TONAL' | 'VOWELS'>('MENU');
+function PlaceholderScreen({ title, onBack }: { title: string; onBack: () => void }) {
+    return (
+        <div className="container">
+            <div className="centred">
+                <div className="menu-title">{title}</div>
+                <div className="menu-subtitle">Coming soon</div>
+                <button className="button menu-button" onClick={onBack}>
+                    Back
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Script deck selector ────────────────────────────────────────────────────
+
+type ScriptMode = 'MENU' | 'CONSONANTS' | 'TONAL' | 'VOWELS';
+
+function ScriptScreen({ onBack }: { onBack: () => void }) {
+    const [mode, setMode] = useState<ScriptMode>('MENU');
 
     if (mode === 'CONSONANTS') {
         return <FlashcardDeck data={CONSONANTS} onBack={() => setMode('MENU')} />;
@@ -284,7 +302,7 @@ export default function App() {
     return (
         <div className="container">
             <div className="centred">
-                <div className="menu-title">Sawasdee App</div>
+                <div className="menu-title">Script</div>
                 <div className="menu-subtitle">Choose a deck to practice</div>
                 <button
                     className="button menu-button"
@@ -303,6 +321,66 @@ export default function App() {
                     onClick={() => setMode('TONAL')}
                 >
                     Practice Tone Rules
+                </button>
+                <button className="button menu-button back-button" onClick={onBack}>
+                    Back
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Root component (Home) ───────────────────────────────────────────────────
+
+type AppMode = 'HOME' | 'SCRIPT' | 'VOCABULARY' | 'SPEAKING' | 'PRONUNCIATION';
+
+export default function App() {
+    const [mode, setMode] = useState<AppMode>('HOME');
+
+    if (mode === 'SCRIPT') {
+        return <ScriptScreen onBack={() => setMode('HOME')} />;
+    }
+
+    if (mode === 'VOCABULARY') {
+        return <PlaceholderScreen title="Vocabulary" onBack={() => setMode('HOME')} />;
+    }
+
+    if (mode === 'SPEAKING') {
+        return <PlaceholderScreen title="Speaking" onBack={() => setMode('HOME')} />;
+    }
+
+    if (mode === 'PRONUNCIATION') {
+        return <PlaceholderScreen title="Pronunciation" onBack={() => setMode('HOME')} />;
+    }
+
+    return (
+        <div className="container">
+            <div className="centred">
+                <div className="menu-title">Sawasdee App</div>
+                <div className="menu-subtitle">Choose what to practice</div>
+                <button
+                    className="button menu-button"
+                    onClick={() => setMode('SCRIPT')}
+                >
+                    Script
+                </button>
+                <button
+                    className="button menu-button"
+                    onClick={() => setMode('VOCABULARY')}
+                >
+                    Vocabulary
+                </button>
+                <button
+                    className="button menu-button"
+                    onClick={() => setMode('SPEAKING')}
+                >
+                    Speaking
+                </button>
+                <button
+                    className="button menu-button"
+                    onClick={() => setMode('PRONUNCIATION')}
+                >
+                    Pronunciation
                 </button>
             </div>
         </div>
