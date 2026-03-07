@@ -228,6 +228,58 @@ body {
   font-style: italic;
 }
 
+/* ── Speaking card rows ──────────────────────────────────────────── */
+
+.speaking-card {
+  padding: 16px;
+}
+
+.speaking-category {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #1565c0;
+  text-align: center;
+  line-height: 18px;
+  height: 18px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.speaking-prompt {
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: bold;
+  text-align: center;
+  color: #111111;
+  line-height: 36px;
+  height: 36px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.speaking-thai {
+  font-size: clamp(22px, 5vw, 32px);
+  font-weight: bold;
+  text-align: center;
+  color: #1a237e;
+  line-height: 40px;
+  height: 40px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.speaking-latinised {
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+  color: #555555;
+  line-height: 22px;
+  height: 22px;
+  overflow: hidden;
+  font-style: italic;
+}
+
 /* ── Buttons ─────────────────────────────────────────────────────── */
 
 .button {

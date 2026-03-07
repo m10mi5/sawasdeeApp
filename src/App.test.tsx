@@ -4,8 +4,9 @@ import { CONSONANTS } from './consonants';
 import { TONAL_RULES } from './tonalRules';
 import { VOWELS } from './vowels';
 import { VOCABULARY } from './vocabulary';
+import { SPEAKING_CHALLENGES } from './speakingChallenges';
 import { shuffleArray } from './utils';
-import App, { FlashcardDeck, VocabularyDeck } from './App';
+import App, { FlashcardDeck, VocabularyDeck, SpeakingDeck } from './App';
 
 vi.mock('./speech', () => ({
     speakThai: vi.fn(),
@@ -128,10 +129,19 @@ describe('<App /> home screen', () => {
         expect(getByText('Vocabulary')).toBeTruthy();
     });
 
-    it('shows placeholder for Speaking', () => {
+    it('navigates to speaking deck', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Speaking'));
-        expect(getByText('Coming soon')).toBeTruthy();
+        expect(getByText('Show Answer')).toBeTruthy();
+    });
+
+    it('navigates to speaking deck and back', () => {
+        const { getByText } = render(<App />);
+        fireEvent.click(getByText('Speaking'));
+        expect(getByText('Show Answer')).toBeTruthy();
+        fireEvent.click(getByText('Back to Menu'));
+        expect(getByText('Script')).toBeTruthy();
+        expect(getByText('Speaking')).toBeTruthy();
     });
 
     it('shows placeholder for Pronunciation', () => {
@@ -142,7 +152,7 @@ describe('<App /> home screen', () => {
 
     it('returns from placeholder to home via Back', () => {
         const { getByText } = render(<App />);
-        fireEvent.click(getByText('Speaking'));
+        fireEvent.click(getByText('Pronunciation'));
         fireEvent.click(getByText('Back'));
         expect(getByText('Script')).toBeTruthy();
         expect(getByText('Pronunciation')).toBeTruthy();
@@ -214,7 +224,72 @@ describe('<VocabularyDeck />', () => {
         expect(getByText('Deck Complete!')).toBeTruthy();
     });
 });
+// ── 2c. <SpeakingDeck /> ────────────────────────────────────────────────────────────
 
+function renderSpeakingDeck() {
+    return render(<SpeakingDeck onBack={vi.fn()} />);
+}
+
+describe('<SpeakingDeck />', () => {
+    it('shows English prompt on first render', () => {
+        const { container } = renderSpeakingDeck();
+        const prompt = container.querySelector('.speaking-prompt');
+        expect(prompt).toBeTruthy();
+        expect(SPEAKING_CHALLENGES.map(c => c.prompt)).toContain(prompt!.textContent);
+    });
+
+    it('shows a category label', () => {
+        const { getByTestId } = renderSpeakingDeck();
+        const cat = getByTestId('speaking-category');
+        expect(['Modal Verbs', 'Directions', 'Food Ordering']).toContain(cat.textContent);
+    });
+
+    it('hides Thai and latinised by default', () => {
+        const { getByTestId } = renderSpeakingDeck();
+        expect(getByTestId('speaking-thai').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('speaking-latinised').classList.contains('hidden')).toBe(true);
+    });
+
+    it('shows Thai and latinised after pressing "Show Answer"', () => {
+        const { getByText, getByTestId } = renderSpeakingDeck();
+        fireEvent.click(getByText('Show Answer'));
+        expect(getByTestId('speaking-thai').classList.contains('hidden')).toBe(false);
+        expect(getByTestId('speaking-latinised').classList.contains('hidden')).toBe(false);
+    });
+
+    it('hides answer again after pressing "Hide Answer"', () => {
+        const { getByText, getByTestId } = renderSpeakingDeck();
+        fireEvent.click(getByText('Show Answer'));
+        fireEvent.click(getByText('Hide Answer'));
+        expect(getByTestId('speaking-thai').classList.contains('hidden')).toBe(true);
+    });
+
+    it('advances to next card and hides answer', () => {
+        const { getByText, getByTestId, container } = renderSpeakingDeck();
+        fireEvent.click(getByText('Show Answer'));
+        const first = container.querySelector('.speaking-prompt')!.textContent;
+        fireEvent.click(getByText('Next'));
+        const second = container.querySelector('.speaking-prompt')!.textContent;
+        expect(second).not.toBe(first);
+        expect(getByTestId('speaking-thai').classList.contains('hidden')).toBe(true);
+    });
+
+    it('speaks the Thai text when play is pressed', () => {
+        (speakThai as ReturnType<typeof vi.fn>).mockClear();
+        const { getByTestId } = renderSpeakingDeck();
+        fireEvent.click(getByTestId('play-btn'));
+        const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        expect(SPEAKING_CHALLENGES.map(c => c.thai)).toContain(text);
+    });
+
+    it('shows Deck Complete after going through all cards', () => {
+        const { getByText } = renderSpeakingDeck();
+        for (let i = 0; i < SPEAKING_CHALLENGES.length; i++) {
+            fireEvent.click(getByText('Next'));
+        }
+        expect(getByText('Deck Complete!')).toBeTruthy();
+    });
+});
 // ── 3. <FlashcardDeck /> rendering ───────────────────────────────────────────
 
 describe('<FlashcardDeck /> rendering', () => {

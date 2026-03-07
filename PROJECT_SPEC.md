@@ -48,6 +48,7 @@ thaiscript/
     ├── tonalRules.ts   # TONAL_RULES array + TonalRule interface
     ├── vowels.ts       # VOWELS array + Vowel interface
     ├── vocabulary.ts   # VOCABULARY array + VocabItem interface
+    ├── speakingChallenges.ts  # SPEAKING_CHALLENGES array + SpeakingChallenge interface
     └── utils.ts        # shuffleArray<T>() pure function
 ```
 
@@ -181,7 +182,7 @@ export interface VocabItem {
 }
 ```
 
-### Content — 119 vocabulary items
+### Content — 163 vocabulary items
 
 Sourced from `book/vocabulary.csv`. Covers greetings, pronouns, particles, places, food, travel, numbers, colours, body parts, time, weather, and common expressions.
 
@@ -194,6 +195,29 @@ Sourced from `book/vocabulary.csv`. Covers greetings, pronouns, particles, place
 | pronoun | ~5 |
 | particle | ~5 |
 | adverb | ~5 |
+
+---
+
+## Data — `speakingChallenges.ts`
+
+### Interface
+
+```ts
+export interface SpeakingChallenge {
+  prompt: string;                             // English prompt, e.g. 'I want to eat pad thai'
+  thai: string;                               // Thai script answer, e.g. 'อยากกินผัดไทย'
+  latinised: string;                          // Romanised answer, e.g. 'yàak gin phàt thai'
+  category: 'modals' | 'directions' | 'food-ordering';
+}
+```
+
+### Content — 46 speaking challenges
+
+| Category | Count | Examples |
+|---|---|---|
+| modals | 15 | "I want to eat pad thai", "Can you speak Thai?", "I must go now" |
+| directions | 15 | "Where is the train station?", "Turn left at the market", "Is it far?" |
+| food-ordering | 16 | "I'd like fried rice, please", "Not too spicy", "Check, please" |
 
 ---
 
@@ -233,6 +257,7 @@ export function speakThai(text: string): void
 
 - Wraps the browser's **Web Speech API** (`SpeechSynthesisUtterance`).
 - Sets `utterance.lang = 'th'` for Thai pronunciation.
+- Calls `window.speechSynthesis.cancel()` before each `speak()` to prevent Chrome's speech queue from getting stuck.
 - Falls back silently if `window.speechSynthesis` is unavailable.
 - Thai TTS availability depends on the user's OS/browser having a Thai voice installed (works on Chrome/macOS/Windows; may be limited on Firefox/Linux).
 
@@ -248,11 +273,13 @@ Three components live in `App.tsx`:
 |---|---|
 | `App` (default export) | Home screen — routes to practice modes via `mode` state |
 | `ScriptScreen` | Script deck selector — consonants, vowels, tonal rules sub-menu |
-| `PlaceholderScreen` | Generic "Coming soon" screen used by Speaking, Pronunciation |
+| `PlaceholderScreen` | Generic "Coming soon" screen used by Pronunciation |
 | `FlashcardDeck` (named export) | Stateful deck player; receives a `data` array and an `onBack` callback |
 | `Card` | Stateless card renderer; dispatches between consonant, vowel, and rule layouts |
 | `VocabularyDeck` (named export) | Stateful vocabulary deck player; uses `VOCABULARY` data directly |
 | `VocabCard` | Stateless vocabulary card renderer |
+| `SpeakingDeck` (named export) | Stateful speaking challenge deck player; uses `SPEAKING_CHALLENGES` data directly |
+| `SpeakingCard` | Stateless speaking card renderer |
 
 ### `App` — Home Screen
 
@@ -269,7 +296,7 @@ Three components live in `App.tsx`:
 | `'HOME'` | Title ("Sawasdee App"), subtitle "Choose what to practice", four buttons: Script, Vocabulary, Speaking, Pronunciation |
 | `'SCRIPT'` | `<ScriptScreen onBack={() => setMode('HOME')} />` |
 | `'VOCABULARY'` | `<VocabularyDeck onBack={() => setMode('HOME')} />` |
-| `'SPEAKING'` | `<PlaceholderScreen title="Speaking" onBack={() => setMode('HOME')} />` |
+| `'SPEAKING'` | `<SpeakingDeck onBack={() => setMode('HOME')} />` |
 | `'PRONUNCIATION'` | `<PlaceholderScreen title="Pronunciation" onBack={() => setMode('HOME')} />` |
 
 ### `ScriptScreen` — Deck Selector
@@ -295,7 +322,55 @@ Three components live in `App.tsx`:
 
 **Props**: `{ title: string; onBack: () => void }`
 
-Renders the title, "Coming soon" subtitle, and a "Back" button. Used only by Speaking and Pronunciation modes.
+Renders the title, "Coming soon" subtitle, and a "Back" button. Used only by Pronunciation mode.
+
+### `SpeakingDeck`
+
+**Props**: `{ onBack: () => void }`
+
+**State**
+
+| Variable | Type | Description |
+|---|---|---|
+| `deck` | `SpeakingChallenge[]` | `shuffleArray(SPEAKING_CHALLENGES)` — reshuffled on mount and on restart/shuffle |
+| `currentIndex` | `number` | Zero-based index of the card being shown |
+| `showAnswer` | `boolean` | Whether the Thai + latinised answer is visible (default `false`) |
+
+**Derived**
+
+```ts
+const isDeckComplete = currentIndex >= deck.length;
+```
+
+**Screens**
+
+*Flashcard screen* (shown while `!isDeckComplete`):
+
+- `<SpeakingCard item={deck[currentIndex]} showAnswer={showAnswer} />`
+- **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
+- **Show/Hide Answer** toggle — label reads "Hide Answer" when visible, "Show Answer" when hidden; `data-testid="toggle-answer-btn"`
+- **Previous / Next** row — Previous disabled at index 0; navigating resets `showAnswer` to `false`
+- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0; both reset `showAnswer` to `false`
+- **Back to Menu** button — calls `onBack`
+
+*Deck Complete screen* (shown when `isDeckComplete`):
+
+- Text: "Deck Complete!"
+- "Start Again" button — reshuffles and resets index
+- "Back to Menu" button — calls `onBack`
+
+### `SpeakingCard`
+
+**Props**: `{ item: SpeakingChallenge; showAnswer: boolean }`
+
+| Element | Detail | data-testid | Always visible |
+|---|---|---|---|
+| Category label | Uppercase, blue (#1565c0), `font-size: 12px`; fixed `height: 18px`, `overflow: hidden` | `speaking-category` | yes |
+| English prompt | `font-size: clamp(20px, 5vw, 28px)`, bold; fixed `height: 36px`, `overflow: hidden` — main card face | — | yes |
+| Thai answer | `font-size: clamp(22px, 5vw, 32px)`, bold blue (#1a237e); fixed `height: 40px`, `overflow: hidden`; hidden via CSS class `hidden` when `!showAnswer` | `speaking-thai` | no |
+| Latinised answer | `font-size: 16px`, italic grey (#555); fixed `height: 22px`, `overflow: hidden`; hidden via CSS class `hidden` when `!showAnswer` | `speaking-latinised` | no |
+
+The speaking card uses CSS classes `.card .speaking-card`. Every row has a fixed `height` and `overflow: hidden`, so card dimensions are identical regardless of text length. The card uses `flex: 1` (inherited from `.card`) to fill available vertical space, same as all other card types.
 
 ### `VocabularyDeck`
 
@@ -459,10 +534,10 @@ The rule card uses CSS classes `card rule-card` where `rule-card` sets `height: 
 ### Key imports
 
 ```ts
-import App, { FlashcardDeck, VocabularyDeck } from './App';
+import App, { FlashcardDeck, VocabularyDeck, SpeakingDeck } from './App';
 ```
 
-`FlashcardDeck` and `VocabularyDeck` are tested directly (bypassing the menu) via helpers:
+`FlashcardDeck`, `VocabularyDeck`, and `SpeakingDeck` are tested directly (bypassing the menu) via helpers:
 
 ```ts
 function renderDeck() {
@@ -473,6 +548,9 @@ function renderVowelDeck() {
 }
 function renderVocabDeck() {
   return render(<VocabularyDeck onBack={vi.fn()} />);
+}
+function renderSpeakingDeck() {
+  return render(<SpeakingDeck onBack={vi.fn()} />);
 }
 ```
 
@@ -486,7 +564,7 @@ function renderVocabDeck() {
 | Preserves all items | Every original item is present in the result |
 | Changes order | After N runs at least one result differs from the original order |
 
-#### 2. `<App />` home screen (12 tests)
+#### 2. `<App />` home screen (13 tests)
 
 | Test | Assertion |
 |---|---|
@@ -499,9 +577,10 @@ function renderVocabDeck() {
 | Returns from deck to script menu | After Script → deck → Back to Menu, script deck buttons visible |
 | Shows vocabulary deck | After clicking "Vocabulary", "Show English" toggle is visible |
 | Navigates to vocabulary deck and back | After Vocabulary → Back to Menu, home buttons are visible |
-| Shows placeholder for Speaking | After clicking "Speaking", "Coming soon" is visible |
+| Navigates to speaking deck | After clicking "Speaking", "Show Answer" toggle is visible |
+| Navigates to speaking deck and back | After Speaking → Back to Menu, home buttons are visible |
 | Shows placeholder for Pronunciation | After clicking "Pronunciation", "Coming soon" is visible |
-| Returns from placeholder to home | After Speaking → Back, home buttons are visible |
+| Returns from placeholder to home | After Pronunciation → Back, home buttons are visible |
 
 #### 2b. `<VocabularyDeck />` (8 tests)
 
@@ -514,7 +593,20 @@ function renderVocabDeck() {
 | Hides english on re-toggle | After show then "Hide English", `vocab-english` regains `hidden` class |
 | Advances to next card | After Next, `.vocab-latinised` text changes |
 | Speaks Thai on play | `speakThai` called with a value from `VOCABULARY.map(v => v.thai)` |
-| Deck Complete after all cards | After clicking Next 119 times, "Deck Complete!" is visible |
+| Deck Complete after all cards | After clicking Next `VOCABULARY.length` times, "Deck Complete!" is visible |
+
+#### 2c. `<SpeakingDeck />` (8 tests)
+
+| Test | Assertion |
+|---|---|
+| Shows English prompt | `.speaking-prompt` contains a value from `SPEAKING_CHALLENGES` |
+| Shows a category label | `speaking-category` contains one of "Modal Verbs", "Directions", "Food Ordering" |
+| Hides Thai and latinised by default | `speaking-thai` and `speaking-latinised` have CSS class `hidden` |
+| Shows answer after toggle | After "Show Answer", `speaking-thai` loses `hidden` class |
+| Hides answer on re-toggle | After show then "Hide Answer", `speaking-thai` regains `hidden` class |
+| Advances to next card and hides answer | After Show Answer + Next, prompt changes and answer is hidden again |
+| Speaks Thai on play | `speakThai` called with a value from `SPEAKING_CHALLENGES.map(c => c.thai)` |
+| Deck Complete after all cards | After clicking Next `SPEAKING_CHALLENGES.length` times, "Deck Complete!" is visible |
 
 #### 3. `<FlashcardDeck />` rendering (4 tests)
 

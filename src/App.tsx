@@ -3,6 +3,7 @@ import { Consonant, CONSONANTS } from './consonants';
 import { TonalRule, TONAL_RULES } from './tonalRules';
 import { Vowel, VOWELS } from './vowels';
 import { VocabItem, VOCABULARY } from './vocabulary';
+import { SpeakingChallenge, SPEAKING_CHALLENGES } from './speakingChallenges';
 import { shuffleArray } from './utils';
 import { speakThai } from './speech';
 
@@ -394,6 +395,155 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
     );
 }
 
+// ─── Speaking card ────────────────────────────────────────────────────────────
+
+interface SpeakingCardProps {
+    item: SpeakingChallenge;
+    showAnswer: boolean;
+}
+
+function SpeakingCard({ item, showAnswer }: SpeakingCardProps) {
+    const categoryLabel =
+        item.category === 'food-ordering' ? 'Food Ordering'
+        : item.category === 'modals' ? 'Modal Verbs'
+        : 'Directions';
+
+    return (
+        <div className="card speaking-card">
+            <div className="speaking-category" data-testid="speaking-category">
+                {categoryLabel}
+            </div>
+            <div className="speaking-prompt">{item.prompt}</div>
+            <div
+                data-testid="speaking-thai"
+                className={`speaking-thai ${!showAnswer ? 'hidden' : ''}`}
+            >
+                {item.thai}
+            </div>
+            <div
+                data-testid="speaking-latinised"
+                className={`speaking-latinised ${!showAnswer ? 'hidden' : ''}`}
+            >
+                {item.latinised}
+            </div>
+        </div>
+    );
+}
+
+// ─── SpeakingDeck component ──────────────────────────────────────────────────
+
+export function SpeakingDeck({ onBack }: { onBack: () => void }) {
+    const [deck, setDeck] = useState<SpeakingChallenge[]>(() => shuffleArray(SPEAKING_CHALLENGES));
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [showAnswer, setShowAnswer] = useState(false);
+
+    const isDeckComplete = currentIndex >= deck.length;
+
+    function handleRestart() {
+        setDeck(shuffleArray(SPEAKING_CHALLENGES));
+        setCurrentIndex(0);
+        setShowAnswer(false);
+    }
+
+    function handleShuffle() {
+        setDeck(shuffleArray(SPEAKING_CHALLENGES));
+        setCurrentIndex(0);
+        setShowAnswer(false);
+    }
+
+    function handleBackToStart() {
+        setCurrentIndex(0);
+        setShowAnswer(false);
+    }
+
+    function handleSpeak() {
+        speakThai(deck[currentIndex].thai);
+    }
+
+    function handleNext() {
+        setCurrentIndex(i => i + 1);
+        setShowAnswer(false);
+    }
+
+    function handlePrev() {
+        setCurrentIndex(i => i - 1);
+        setShowAnswer(false);
+    }
+
+    return (
+        <div className="container">
+            {isDeckComplete ? (
+                <div className="centred">
+                    <div className="complete-text">Deck Complete!</div>
+                    <button className="button" onClick={handleRestart}>
+                        Start Again
+                    </button>
+                    <button className="button back-button" onClick={onBack}>
+                        Back to Menu
+                    </button>
+                </div>
+            ) : (
+                <div className="centred">
+                    <SpeakingCard item={deck[currentIndex]} showAnswer={showAnswer} />
+                    <button
+                        data-testid="play-btn"
+                        className="play-button"
+                        onClick={handleSpeak}
+                    >
+                        ▶  Listen
+                    </button>
+                    <button
+                        data-testid="toggle-answer-btn"
+                        className="toggle-button"
+                        onClick={() => setShowAnswer(v => !v)}
+                    >
+                        {showAnswer ? 'Hide Answer' : 'Show Answer'}
+                    </button>
+                    <div className="button-row">
+                        <button
+                            data-testid="prev-btn"
+                            className="button"
+                            disabled={currentIndex === 0}
+                            onClick={handlePrev}
+                        >
+                            Previous
+                        </button>
+                        <button
+                            className="button"
+                            onClick={handleNext}
+                        >
+                            Next
+                        </button>
+                    </div>
+                    <div className="util-row">
+                        <button
+                            data-testid="back-to-start-btn"
+                            className="util-button"
+                            disabled={currentIndex === 0}
+                            onClick={handleBackToStart}
+                        >
+                            Back to Start
+                        </button>
+                        <button
+                            data-testid="shuffle-btn"
+                            className="util-button"
+                            onClick={handleShuffle}
+                        >
+                            Shuffle Deck
+                        </button>
+                    </div>
+                    <button
+                        className="util-button util-button-back"
+                        onClick={onBack}
+                    >
+                        Back to Menu
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Placeholder screen ──────────────────────────────────────────────────────
 
 function PlaceholderScreen({ title, onBack }: { title: string; onBack: () => void }) {
@@ -476,7 +626,7 @@ export default function App() {
     }
 
     if (mode === 'SPEAKING') {
-        return <PlaceholderScreen title="Speaking" onBack={() => setMode('HOME')} />;
+        return <SpeakingDeck onBack={() => setMode('HOME')} />;
     }
 
     if (mode === 'PRONUNCIATION') {
