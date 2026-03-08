@@ -185,7 +185,7 @@ body {
   padding: 16px;
 }
 
-.vocab-latinised {
+.vocab-question-primary {
   font-size: clamp(22px, 5vw, 32px);
   font-weight: bold;
   text-align: center;
@@ -196,7 +196,7 @@ body {
   margin-bottom: 6px;
 }
 
-.vocab-thai {
+.vocab-question-secondary {
   font-size: 16px;
   color: #555555;
   text-align: center;
@@ -206,7 +206,7 @@ body {
   margin-bottom: 10px;
 }
 
-.vocab-english {
+.vocab-solution-primary {
   font-size: 16px;
   font-weight: 500;
   line-height: 22px;
@@ -217,7 +217,7 @@ body {
   margin-bottom: 4px;
 }
 
-.vocab-grammar {
+.vocab-solution-secondary {
   font-size: 13px;
   font-weight: 500;
   line-height: 18px;
@@ -247,7 +247,7 @@ body {
   margin-bottom: 8px;
 }
 
-.speaking-prompt {
+.speaking-question {
   font-size: clamp(20px, 5vw, 28px);
   font-weight: bold;
   text-align: center;
@@ -258,7 +258,19 @@ body {
   margin-bottom: 12px;
 }
 
-.speaking-thai {
+.speaking-question-secondary {
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+  color: #555555;
+  line-height: 22px;
+  height: 22px;
+  overflow: hidden;
+  font-style: italic;
+  margin-bottom: 6px;
+}
+
+.speaking-solution {
   font-size: clamp(22px, 5vw, 32px);
   font-weight: bold;
   text-align: center;
@@ -269,7 +281,7 @@ body {
   margin-bottom: 6px;
 }
 
-.speaking-latinised {
+.speaking-solution-secondary {
   font-size: 16px;
   font-weight: 500;
   text-align: center;
@@ -321,6 +333,21 @@ body {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+}
+
+.direction-toggle {
+  width: 100px;
+  text-align: center;
+  padding: 4px 0;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  border: 1px solid #7e57c2;
+  background: none;
+  color: #7e57c2;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.5px;
 }
 
 .play-button {

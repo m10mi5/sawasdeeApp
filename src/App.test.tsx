@@ -117,13 +117,13 @@ describe('<App /> home screen', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Vocabulary'));
         // Should show vocabulary deck, not "Coming soon"
-        expect(getByText('Show English')).toBeTruthy();
+        expect(getByText('Show Solution')).toBeTruthy();
     });
 
     it('navigates to vocabulary deck and back', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Vocabulary'));
-        expect(getByText('Show English')).toBeTruthy();
+        expect(getByText('Show Solution')).toBeTruthy();
         fireEvent.click(getByText('Back to Menu'));
         expect(getByText('Script')).toBeTruthy();
         expect(getByText('Vocabulary')).toBeTruthy();
@@ -166,45 +166,47 @@ function renderVocabDeck() {
 }
 
 describe('<VocabularyDeck />', () => {
-    it('shows latinised text on first render', () => {
-        const { container } = renderVocabDeck();
-        const lat = container.querySelector('.vocab-latinised');
-        expect(lat).toBeTruthy();
-        expect(VOCABULARY.map(v => v.latinised)).toContain(lat!.textContent);
-    });
-
-    it('shows Thai script below the latinised text', () => {
-        const { container } = renderVocabDeck();
-        const thai = container.querySelector('.vocab-thai');
-        expect(thai).toBeTruthy();
-        expect(VOCABULARY.map(v => v.thai)).toContain(thai!.textContent);
-    });
-
-    it('hides english by default', () => {
+    it('shows question text on first render', () => {
         const { getByTestId } = renderVocabDeck();
-        expect(getByTestId('vocab-english').classList.contains('hidden')).toBe(true);
-        expect(getByTestId('vocab-grammar').classList.contains('hidden')).toBe(true);
+        const q = getByTestId('vocab-question-primary');
+        expect(q).toBeTruthy();
+        // Default direction is th-to-en, so question shows latinised
+        expect(VOCABULARY.map(v => v.latinised)).toContain(q.textContent);
     });
 
-    it('shows english after pressing "Show English"', () => {
-        const { getByText, getByTestId } = renderVocabDeck();
-        fireEvent.click(getByText('Show English'));
-        expect(getByTestId('vocab-english').classList.contains('hidden')).toBe(false);
-        expect(getByTestId('vocab-grammar').classList.contains('hidden')).toBe(false);
+    it('shows secondary question text', () => {
+        const { getByTestId } = renderVocabDeck();
+        const q2 = getByTestId('vocab-question-secondary');
+        expect(q2).toBeTruthy();
+        // Default direction is th-to-en, so secondary shows thai
+        expect(VOCABULARY.map(v => v.thai)).toContain(q2.textContent);
     });
 
-    it('hides english again after pressing "Hide English"', () => {
+    it('hides solution by default', () => {
+        const { getByTestId } = renderVocabDeck();
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(true);
+    });
+
+    it('shows solution after pressing "Show Solution"', () => {
         const { getByText, getByTestId } = renderVocabDeck();
-        fireEvent.click(getByText('Show English'));
-        fireEvent.click(getByText('Hide English'));
-        expect(getByTestId('vocab-english').classList.contains('hidden')).toBe(true);
+        fireEvent.click(getByText('Show Solution'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
+        expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
+    });
+
+    it('hides solution again after pressing "Hide Solution"', () => {
+        const { getByText, getByTestId } = renderVocabDeck();
+        fireEvent.click(getByText('Show Solution'));
+        fireEvent.click(getByText('Hide Solution'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
     });
 
     it('advances to next card', () => {
-        const { getByText, container } = renderVocabDeck();
-        const first = container.querySelector('.vocab-latinised')!.textContent;
+        const { getByText, getByTestId } = renderVocabDeck();
+        const first = getByTestId('vocab-question-primary').textContent;
         fireEvent.click(getByText('Next'));
-        const second = container.querySelector('.vocab-latinised')!.textContent;
+        const second = getByTestId('vocab-question-primary').textContent;
         expect(second).not.toBe(first);
     });
 
@@ -223,6 +225,40 @@ describe('<VocabularyDeck />', () => {
         }
         expect(getByText('Deck Complete!')).toBeTruthy();
     });
+
+    it('shows direction toggle defaulting to TH → EN', () => {
+        const { getByTestId } = renderVocabDeck();
+        expect(getByTestId('toggle-direction-btn').textContent).toBe('TH → EN');
+    });
+
+    it('switches to EN → TH and swaps question/solution content', () => {
+        const { getByTestId } = renderVocabDeck();
+        fireEvent.click(getByTestId('toggle-direction-btn'));
+        expect(getByTestId('toggle-direction-btn').textContent).toBe('EN → TH');
+        // Question now shows english
+        expect(VOCABULARY.map(v => v.english)).toContain(getByTestId('vocab-question-primary').textContent);
+        // Solution is hidden
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(true);
+    });
+
+    it('reveals solution after pressing Show Solution in EN → TH direction', () => {
+        const { getByTestId, getByText } = renderVocabDeck();
+        fireEvent.click(getByTestId('toggle-direction-btn'));
+        fireEvent.click(getByText('Show Solution'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
+        expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
+    });
+
+    it('resets answer visibility when toggling direction', () => {
+        const { getByTestId, getByText } = renderVocabDeck();
+        // Show answer in th-to-en
+        fireEvent.click(getByText('Show Solution'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
+        // Switch direction — answer should reset to hidden
+        fireEvent.click(getByTestId('toggle-direction-btn'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+    });
 });
 // ── 2c. <SpeakingDeck /> ────────────────────────────────────────────────────────────
 
@@ -231,11 +267,12 @@ function renderSpeakingDeck() {
 }
 
 describe('<SpeakingDeck />', () => {
-    it('shows English prompt on first render', () => {
-        const { container } = renderSpeakingDeck();
-        const prompt = container.querySelector('.speaking-prompt');
-        expect(prompt).toBeTruthy();
-        expect(SPEAKING_CHALLENGES.map(c => c.prompt)).toContain(prompt!.textContent);
+    it('shows question text on first render', () => {
+        const { getByTestId } = renderSpeakingDeck();
+        const q = getByTestId('speaking-question');
+        expect(q).toBeTruthy();
+        // Default direction is en-to-th, so question shows English prompt
+        expect(SPEAKING_CHALLENGES.map(c => c.prompt)).toContain(q.textContent);
     });
 
     it('shows a category label', () => {
@@ -244,34 +281,32 @@ describe('<SpeakingDeck />', () => {
         expect(['Modal Verbs', 'Directions', 'Food Ordering']).toContain(cat.textContent);
     });
 
-    it('hides Thai and latinised by default', () => {
+    it('hides solution by default', () => {
         const { getByTestId } = renderSpeakingDeck();
-        expect(getByTestId('speaking-thai').classList.contains('hidden')).toBe(true);
-        expect(getByTestId('speaking-latinised').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
 
-    it('shows Thai and latinised after pressing "Show Answer"', () => {
+    it('shows solution after pressing "Show Answer"', () => {
         const { getByText, getByTestId } = renderSpeakingDeck();
         fireEvent.click(getByText('Show Answer'));
-        expect(getByTestId('speaking-thai').classList.contains('hidden')).toBe(false);
-        expect(getByTestId('speaking-latinised').classList.contains('hidden')).toBe(false);
+        expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(false);
     });
 
     it('hides answer again after pressing "Hide Answer"', () => {
         const { getByText, getByTestId } = renderSpeakingDeck();
         fireEvent.click(getByText('Show Answer'));
         fireEvent.click(getByText('Hide Answer'));
-        expect(getByTestId('speaking-thai').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
 
     it('advances to next card and hides answer', () => {
-        const { getByText, getByTestId, container } = renderSpeakingDeck();
+        const { getByText, getByTestId } = renderSpeakingDeck();
         fireEvent.click(getByText('Show Answer'));
-        const first = container.querySelector('.speaking-prompt')!.textContent;
+        const first = getByTestId('speaking-question').textContent;
         fireEvent.click(getByText('Next'));
-        const second = container.querySelector('.speaking-prompt')!.textContent;
+        const second = getByTestId('speaking-question').textContent;
         expect(second).not.toBe(first);
-        expect(getByTestId('speaking-thai').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
 
     it('speaks the Thai text when play is pressed', () => {
@@ -288,6 +323,38 @@ describe('<SpeakingDeck />', () => {
             fireEvent.click(getByText('Next'));
         }
         expect(getByText('Deck Complete!')).toBeTruthy();
+    });
+
+    it('shows direction toggle defaulting to EN → TH', () => {
+        const { getByTestId } = renderSpeakingDeck();
+        expect(getByTestId('toggle-direction-btn').textContent).toBe('EN → TH');
+    });
+
+    it('switches to TH → EN and swaps question/solution content', () => {
+        const { getByTestId } = renderSpeakingDeck();
+        fireEvent.click(getByTestId('toggle-direction-btn'));
+        expect(getByTestId('toggle-direction-btn').textContent).toBe('TH → EN');
+        // Question now shows thai
+        expect(SPEAKING_CHALLENGES.map(c => c.thai)).toContain(getByTestId('speaking-question').textContent);
+        // Solution is hidden
+        expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
+    });
+
+    it('reveals solution after pressing Show Answer in TH → EN direction', () => {
+        const { getByTestId, getByText } = renderSpeakingDeck();
+        fireEvent.click(getByTestId('toggle-direction-btn'));
+        fireEvent.click(getByText('Show Answer'));
+        expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(false);
+    });
+
+    it('resets answer visibility when toggling direction', () => {
+        const { getByTestId, getByText } = renderSpeakingDeck();
+        // Show answer in en-to-th
+        fireEvent.click(getByText('Show Answer'));
+        expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(false);
+        // Switch direction — answer should reset to hidden
+        fireEvent.click(getByTestId('toggle-direction-btn'));
+        expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
 });
 // ── 3. <FlashcardDeck /> rendering ───────────────────────────────────────────

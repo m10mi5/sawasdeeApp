@@ -37,6 +37,14 @@ thaiscript/
 │   ├── copilot-instructions.md
 │   └── workflows/
 │       └── deploy.yml  # GHA: build + deploy to GitHub Pages on merge
+├── book/
+│   ├── vocabulary.csv          # 263 vocabulary entries (latinised, thai, type, english, grammar)
+│   ├── vocabulary_old.csv      # Previous vocabulary extraction (archived)
+│   ├── exercises.csv           # 44 translation exercises (english, latinised, thai, category)
+│   ├── ocr_extract.py          # OCR extraction script (pymupdf + tesseract)
+│   ├── 1.pdf                   # Book pages: Places, Daily Activities, Numbers, Food & Drink
+│   ├── 2.pdf                   # Book pages: Introduction, Greeting, Places
+│   └── 3.pdf                   # Book pages: Thai Food reference
 └── src/
     ├── main.tsx        # React DOM entry point
     ├── App.tsx         # Deck Selector root + FlashcardDeck + Card components
@@ -182,19 +190,43 @@ export interface VocabItem {
 }
 ```
 
-### Content — 163 vocabulary items
+### Content — 263 vocabulary items
 
-Sourced from `book/vocabulary.csv`. Covers greetings, pronouns, particles, places, food, travel, numbers, colours, body parts, time, weather, and common expressions.
+Sourced from `book/vocabulary.csv`, extracted via OCR from "Speak Thai in 15 Days" textbook PDFs. Covers greeting, places, daily activities, numbers, shopping, clothing, food & drink, and common expressions.
 
-| Grammar | Approximate count |
+| Grammar | Count |
 |---|---|
-| noun | ~40 |
-| verb | ~15 |
-| adjective | ~20 |
-| phrase | ~25 |
-| pronoun | ~5 |
-| particle | ~5 |
-| adverb | ~5 |
+| noun | 114 |
+| phrase | 43 |
+| verb | 35 |
+| adjective | 19 |
+| number | 18 |
+| adverb | 14 |
+| pronoun | 10 |
+| preposition | 4 |
+| particle | 3 |
+| conjunction | 2 |
+| interjection | 1 |
+
+---
+
+## Data — `book/exercises.csv`
+
+### Format
+
+```
+english exercise,latinised thai solution,thai script solution,category
+```
+
+### Content — 44 translation exercises
+
+Sourced from `book/exercises.csv`, extracted from exercise sections of the textbook. Users are given an English sentence and must produce the Thai translation.
+
+| Category | Count |
+|---|---|
+| places | 15 |
+| numbers | 15 |
+| daily-activities | 14 |
 
 ---
 
@@ -226,7 +258,15 @@ export interface SpeakingChallenge {
 ```ts
 // Defined and exported from App.tsx
 export type FlashcardItem = Consonant | TonalRule | Vowel;
+export type QuizDirection = 'th-to-en' | 'en-to-th';
 ```
+
+`QuizDirection` controls which side of a vocabulary or speaking card is the "question" and which is the "answer":
+
+| Direction | Question (visible) | Answer (hidden until revealed) |
+|---|---|---|
+| `'th-to-en'` | Thai / latinised | English |
+| `'en-to-th'` | English | Thai / latinised |
 
 Discriminant chain in `Card`:
 
@@ -334,7 +374,8 @@ Renders the title, "Coming soon" subtitle, and a "Back" button. Used only by Pro
 |---|---|---|
 | `deck` | `SpeakingChallenge[]` | `shuffleArray(SPEAKING_CHALLENGES)` — reshuffled on mount and on restart/shuffle |
 | `currentIndex` | `number` | Zero-based index of the card being shown |
-| `showAnswer` | `boolean` | Whether the Thai + latinised answer is visible (default `false`) |
+| `showAnswer` | `boolean` | Whether the answer side is visible (default `false`) |
+| `direction` | `QuizDirection` | Quiz direction: `'en-to-th'` (default) or `'th-to-en'` |
 
 **Derived**
 
@@ -346,7 +387,8 @@ const isDeckComplete = currentIndex >= deck.length;
 
 *Flashcard screen* (shown while `!isDeckComplete`):
 
-- `<SpeakingCard item={deck[currentIndex]} showAnswer={showAnswer} />`
+- **Direction toggle** — pill button reading "EN → TH" or "TH → EN"; toggles `direction` state and resets `showAnswer` to `false`; `data-testid="toggle-direction-btn"`
+- `<SpeakingCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />`
 - **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
 - **Show/Hide Answer** toggle — label reads "Hide Answer" when visible, "Show Answer" when hidden; `data-testid="toggle-answer-btn"`
 - **Previous / Next** row — Previous disabled at index 0; navigating resets `showAnswer` to `false`
@@ -361,14 +403,22 @@ const isDeckComplete = currentIndex >= deck.length;
 
 ### `SpeakingCard`
 
-**Props**: `{ item: SpeakingChallenge; showAnswer: boolean }`
+**Props**: `{ item: SpeakingChallenge; showAnswer: boolean; direction: QuizDirection }`
 
-| Element | Detail | data-testid | Always visible |
-|---|---|---|---|
-| Category label | Uppercase, blue (#1565c0), `font-size: 12px`; fixed `height: 18px`, `overflow: hidden` | `speaking-category` | yes |
-| English prompt | `font-size: clamp(20px, 5vw, 28px)`, bold; fixed `height: 36px`, `overflow: hidden` — main card face | — | yes |
-| Thai answer | `font-size: clamp(22px, 5vw, 32px)`, bold blue (#1a237e); fixed `height: 40px`, `overflow: hidden`; hidden via CSS class `hidden` when `!showAnswer` | `speaking-thai` | no |
-| Latinised answer | `font-size: 16px`, italic grey (#555); fixed `height: 22px`, `overflow: hidden`; hidden via CSS class `hidden` when `!showAnswer` | `speaking-latinised` | no |
+Uses **role-based rendering**: content is assigned to question/solution slots based on `direction`, so the visual layout (CSS, position) is always the same regardless of direction. Secondary lines are conditionally rendered (not just hidden).
+
+| Direction | Question | Question secondary | Solution | Solution secondary |
+|---|---|---|---|---|
+| `'en-to-th'` | `item.prompt` | *(none)* | `item.thai` | `item.latinised` |
+| `'th-to-en'` | `item.thai` | `item.latinised` | `item.prompt` | *(none)* |
+
+| Element | CSS class | Detail | data-testid | Hidden when |
+|---|---|---|---|---|
+| Category label | `.speaking-category` | Uppercase, blue (#1565c0), `font-size: 12px`; fixed `height: 18px` | `speaking-category` | never |
+| Question | `.speaking-question` | `font-size: clamp(20px, 5vw, 28px)`, bold #111; fixed `height: 36px` | `speaking-question` | never |
+| Question secondary | `.speaking-question-secondary` | `font-size: 16px`, italic #555; fixed `height: 22px` | `speaking-question-secondary` | never (conditionally rendered only in TH→EN) |
+| Solution | `.speaking-solution` | `font-size: clamp(22px, 5vw, 32px)`, bold #1a237e; fixed `height: 40px` | `speaking-solution` | `!showAnswer` |
+| Solution secondary | `.speaking-solution-secondary` | `font-size: 16px`, italic #555; fixed `height: 22px` | `speaking-solution-secondary` | `!showAnswer` (conditionally rendered only in EN→TH) |
 
 The speaking card uses CSS classes `.card .speaking-card`. Every row has a fixed `height` and `overflow: hidden`, so card dimensions are identical regardless of text length. The card uses `flex: 1` (inherited from `.card`) to fill available vertical space, same as all other card types.
 
@@ -382,7 +432,8 @@ The speaking card uses CSS classes `.card .speaking-card`. Every row has a fixed
 |---|---|---|
 | `deck` | `VocabItem[]` | `shuffleArray(VOCABULARY)` — reshuffled on mount and on restart/shuffle |
 | `currentIndex` | `number` | Zero-based index of the card being shown |
-| `showEnglish` | `boolean` | Whether the English translation and grammar are visible (default `false`) |
+| `showAnswer` | `boolean` | Whether the answer side is visible (default `false`) |
+| `direction` | `QuizDirection` | Quiz direction: `'th-to-en'` (default) or `'en-to-th'` |
 
 **Derived**
 
@@ -394,9 +445,10 @@ const isDeckComplete = currentIndex >= deck.length;
 
 *Flashcard screen* (shown while `!isDeckComplete`):
 
-- `<VocabCard item={deck[currentIndex]} showEnglish={showEnglish} />`
+- **Direction toggle** — pill button reading "TH → EN" or "EN → TH"; toggles `direction` state and resets `showAnswer` to `false`; `data-testid="toggle-direction-btn"`
+- `<VocabCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />`
 - **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
-- **Show/Hide English** toggle — label reads "Hide English" when visible, "Show English" when hidden; `data-testid="toggle-english-btn"`
+- **Show/Hide solution** toggle — label reads "Hide Solution" / "Show Solution" regardless of direction; `data-testid="toggle-answer-btn"`
 - **Previous / Next** row — Previous disabled at index 0
 - **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0
 - **Back to Menu** button — calls `onBack`
@@ -409,14 +461,21 @@ const isDeckComplete = currentIndex >= deck.length;
 
 ### `VocabCard`
 
-**Props**: `{ item: VocabItem; showEnglish: boolean }`
+**Props**: `{ item: VocabItem; showAnswer: boolean; direction: QuizDirection }`
 
-| Element | Detail | data-testid | Always visible |
-|---|---|---|---|
-| Latinised text | `font-size: clamp(22px, 5vw, 32px)`, bold; fixed `height: 40px`, `overflow: hidden` — main card face | — | yes |
-| Thai script | `font-size: 16px`, grey (#555); fixed `height: 22px`, `overflow: hidden` — below latinised | — | yes |
-| English translation | `font-size: 16px`, blue (#1a237e); fixed `height: 22px`, `overflow: hidden`; hidden via CSS class `hidden` when `!showEnglish` | `vocab-english` | no |
-| Grammar label | `font-size: 13px`, italic grey (#888); fixed `height: 18px`, `overflow: hidden`; hidden via CSS class `hidden` when `!showEnglish` | `vocab-grammar` | no |
+Uses **role-based rendering**: content is assigned to question/solution slots based on `direction`, so the visual layout (CSS, position) is always the same regardless of direction.
+
+| Direction | Question primary | Question secondary | Solution primary | Solution secondary |
+|---|---|---|---|---|
+| `'th-to-en'` | `item.latinised` | `item.thai` | `item.english` | `item.grammar` |
+| `'en-to-th'` | `item.english` | `item.grammar` | `item.latinised` | `item.thai` |
+
+| Element | CSS class | Detail | data-testid | Hidden when |
+|---|---|---|---|---|
+| Question primary | `.vocab-question-primary` | `font-size: clamp(22px, 5vw, 32px)`, bold #111; fixed `height: 40px` | `vocab-question-primary` | never |
+| Question secondary | `.vocab-question-secondary` | `font-size: 16px`, #555; fixed `height: 22px` | `vocab-question-secondary` | never |
+| Solution primary | `.vocab-solution-primary` | `font-size: 16px`, #1a237e; fixed `height: 22px` | `vocab-solution-primary` | `!showAnswer` |
+| Solution secondary | `.vocab-solution-secondary` | `font-size: 13px`, italic #888; fixed `height: 18px` | `vocab-solution-secondary` | `!showAnswer` |
 
 The vocab card uses CSS classes `.card .vocab-card`. Every row has a fixed `height` and `overflow: hidden`, so card dimensions are identical regardless of text length. The card uses `flex: 1` (inherited from `.card`) to fill available vertical space, same as all other card types.
 
@@ -575,38 +634,46 @@ function renderSpeakingDeck() {
 | Navigates to vowels deck via Script | After Script → Practice Vowels, `vowel-length-label` is present |
 | Returns from script menu to home | After Script → Back, home buttons are visible |
 | Returns from deck to script menu | After Script → deck → Back to Menu, script deck buttons visible |
-| Shows vocabulary deck | After clicking "Vocabulary", "Show English" toggle is visible |
+| Shows vocabulary deck | After clicking "Vocabulary", "Show Solution" toggle is visible |
 | Navigates to vocabulary deck and back | After Vocabulary → Back to Menu, home buttons are visible |
 | Navigates to speaking deck | After clicking "Speaking", "Show Answer" toggle is visible |
 | Navigates to speaking deck and back | After Speaking → Back to Menu, home buttons are visible |
 | Shows placeholder for Pronunciation | After clicking "Pronunciation", "Coming soon" is visible |
 | Returns from placeholder to home | After Pronunciation → Back, home buttons are visible |
 
-#### 2b. `<VocabularyDeck />` (8 tests)
+#### 2b. `<VocabularyDeck />` (12 tests)
 
 | Test | Assertion |
 |---|---|
-| Shows latinised text | `.vocab-latinised` contains a value from `VOCABULARY` |
-| Shows Thai script | `.vocab-thai` contains a value from `VOCABULARY` |
-| Hides english by default | `vocab-english` and `vocab-grammar` have CSS class `hidden` |
-| Shows english after toggle | After "Show English", `vocab-english` loses `hidden` class |
-| Hides english on re-toggle | After show then "Hide English", `vocab-english` regains `hidden` class |
-| Advances to next card | After Next, `.vocab-latinised` text changes |
+| Shows question text | `vocab-question-primary` contains a value from `VOCABULARY` |
+| Shows secondary question text | `vocab-question-secondary` is present |
+| Hides solution by default | `vocab-solution-primary` and `vocab-solution-secondary` have CSS class `hidden` |
+| Shows solution after toggle | After "Show Solution", `vocab-solution-primary` loses `hidden` class |
+| Hides solution on re-toggle | After show then "Hide Solution", `vocab-solution-primary` regains `hidden` class |
+| Advances to next card | After Next, `vocab-question-primary` text changes |
 | Speaks Thai on play | `speakThai` called with a value from `VOCABULARY.map(v => v.thai)` |
 | Deck Complete after all cards | After clicking Next `VOCABULARY.length` times, "Deck Complete!" is visible |
+| Direction toggle defaults to TH → EN | `toggle-direction-btn` reads "TH → EN" on first render |
+| Switches to EN → TH and swaps content | After toggle, question/solution swap content |
+| Reveals solution in EN → TH | After toggle + "Show Solution", solution loses `hidden` class |
+| Resets answer on direction change | After showing answer then toggling direction, solution is hidden again |
 
-#### 2c. `<SpeakingDeck />` (8 tests)
+#### 2c. `<SpeakingDeck />` (12 tests)
 
 | Test | Assertion |
 |---|---|
-| Shows English prompt | `.speaking-prompt` contains a value from `SPEAKING_CHALLENGES` |
+| Shows question text | `speaking-question` contains a value from `SPEAKING_CHALLENGES` |
 | Shows a category label | `speaking-category` contains one of "Modal Verbs", "Directions", "Food Ordering" |
-| Hides Thai and latinised by default | `speaking-thai` and `speaking-latinised` have CSS class `hidden` |
-| Shows answer after toggle | After "Show Answer", `speaking-thai` loses `hidden` class |
-| Hides answer on re-toggle | After show then "Hide Answer", `speaking-thai` regains `hidden` class |
-| Advances to next card and hides answer | After Show Answer + Next, prompt changes and answer is hidden again |
+| Hides solution by default | `speaking-solution` has CSS class `hidden` |
+| Shows solution after toggle | After "Show Answer", `speaking-solution` loses `hidden` class |
+| Hides answer on re-toggle | After show then "Hide Answer", `speaking-solution` regains `hidden` class |
+| Advances to next card and hides answer | After Show Answer + Next, question changes and solution is hidden again |
 | Speaks Thai on play | `speakThai` called with a value from `SPEAKING_CHALLENGES.map(c => c.thai)` |
 | Deck Complete after all cards | After clicking Next `SPEAKING_CHALLENGES.length` times, "Deck Complete!" is visible |
+| Direction toggle defaults to EN → TH | `toggle-direction-btn` reads "EN → TH" on first render |
+| Switches to TH → EN and swaps content | After toggle, question shows thai, solution is hidden |
+| Reveals solution in TH → EN | After toggle + "Show Answer", `speaking-solution` loses `hidden` class |
+| Resets answer on direction change | After showing answer then toggling direction, solution is hidden again |
 
 #### 3. `<FlashcardDeck />` rendering (4 tests)
 

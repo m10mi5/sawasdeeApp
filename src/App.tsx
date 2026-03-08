@@ -10,6 +10,7 @@ import { speakThai } from './speech';
 // ─── Shared type ─────────────────────────────────────────────────────────────
 
 export type FlashcardItem = Consonant | TonalRule | Vowel;
+export type QuizDirection = 'th-to-en' | 'en-to-th';
 
 // ─── Class colour map ────────────────────────────────────────────────────────
 
@@ -270,25 +271,42 @@ export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
 
 interface VocabCardProps {
     item: VocabItem;
-    showEnglish: boolean;
+    showAnswer: boolean;
+    direction: QuizDirection;
 }
 
-function VocabCard({ item, showEnglish }: VocabCardProps) {
+function VocabCard({ item, showAnswer, direction }: VocabCardProps) {
+    const thToEn = direction === 'th-to-en';
+    const questionLine1 = thToEn ? item.latinised : item.english;
+    const questionLine2 = thToEn ? item.thai : item.grammar;
+    const solutionLine1 = thToEn ? item.english : item.latinised;
+    const solutionLine2 = thToEn ? item.grammar : item.thai;
+
     return (
         <div className="card vocab-card">
-            <div className="vocab-latinised">{item.latinised}</div>
-            <div className="vocab-thai">{item.thai}</div>
             <div
-                data-testid="vocab-english"
-                className={`vocab-english ${!showEnglish ? 'hidden' : ''}`}
+                data-testid="vocab-question-primary"
+                className="vocab-question-primary"
             >
-                {item.english}
+                {questionLine1}
             </div>
             <div
-                data-testid="vocab-grammar"
-                className={`vocab-grammar ${!showEnglish ? 'hidden' : ''}`}
+                data-testid="vocab-question-secondary"
+                className="vocab-question-secondary"
             >
-                {item.grammar}
+                {questionLine2}
+            </div>
+            <div
+                data-testid="vocab-solution-primary"
+                className={`vocab-solution-primary ${!showAnswer ? 'hidden' : ''}`}
+            >
+                {solutionLine1}
+            </div>
+            <div
+                data-testid="vocab-solution-secondary"
+                className={`vocab-solution-secondary ${!showAnswer ? 'hidden' : ''}`}
+            >
+                {solutionLine2}
             </div>
         </div>
     );
@@ -299,26 +317,35 @@ function VocabCard({ item, showEnglish }: VocabCardProps) {
 export function VocabularyDeck({ onBack }: { onBack: () => void }) {
     const [deck, setDeck] = useState<VocabItem[]>(() => shuffleArray(VOCABULARY));
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [showEnglish, setShowEnglish] = useState(false);
+    const [showAnswer, setShowAnswer] = useState(false);
+    const [direction, setDirection] = useState<QuizDirection>('th-to-en');
 
     const isDeckComplete = currentIndex >= deck.length;
 
     function handleRestart() {
         setDeck(shuffleArray(VOCABULARY));
         setCurrentIndex(0);
+        setShowAnswer(false);
     }
 
     function handleShuffle() {
         setDeck(shuffleArray(VOCABULARY));
         setCurrentIndex(0);
+        setShowAnswer(false);
     }
 
     function handleBackToStart() {
         setCurrentIndex(0);
+        setShowAnswer(false);
     }
 
     function handleSpeak() {
         speakThai(deck[currentIndex].thai);
+    }
+
+    function handleToggleDirection() {
+        setDirection(d => d === 'th-to-en' ? 'en-to-th' : 'th-to-en');
+        setShowAnswer(false);
     }
 
     return (
@@ -335,7 +362,14 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
                 </div>
             ) : (
                 <div className="centred">
-                    <VocabCard item={deck[currentIndex]} showEnglish={showEnglish} />
+                    <button
+                        data-testid="toggle-direction-btn"
+                        className="direction-toggle"
+                        onClick={handleToggleDirection}
+                    >
+                        {direction === 'th-to-en' ? 'TH → EN' : 'EN → TH'}
+                    </button>
+                    <VocabCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />
                     <button
                         data-testid="play-btn"
                         className="play-button"
@@ -344,11 +378,11 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
                         ▶  Listen
                     </button>
                     <button
-                        data-testid="toggle-english-btn"
+                        data-testid="toggle-answer-btn"
                         className="toggle-button"
-                        onClick={() => setShowEnglish(v => !v)}
+                        onClick={() => setShowAnswer(v => !v)}
                     >
-                        {showEnglish ? 'Hide English' : 'Show English'}
+                        {showAnswer ? 'Hide Solution' : 'Show Solution'}
                     </button>
                     <div className="button-row">
                         <button
@@ -400,32 +434,54 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
 interface SpeakingCardProps {
     item: SpeakingChallenge;
     showAnswer: boolean;
+    direction: QuizDirection;
 }
 
-function SpeakingCard({ item, showAnswer }: SpeakingCardProps) {
+function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
     const categoryLabel =
         item.category === 'food-ordering' ? 'Food Ordering'
         : item.category === 'modals' ? 'Modal Verbs'
         : 'Directions';
+
+    const enToTh = direction === 'en-to-th';
+    const questionText = enToTh ? item.prompt : item.thai;
+    const solutionLine1 = enToTh ? item.thai : item.prompt;
+    const solutionLine2 = enToTh ? item.latinised : null;
+    const questionLine2 = enToTh ? null : item.latinised;
 
     return (
         <div className="card speaking-card">
             <div className="speaking-category" data-testid="speaking-category">
                 {categoryLabel}
             </div>
-            <div className="speaking-prompt">{item.prompt}</div>
             <div
-                data-testid="speaking-thai"
-                className={`speaking-thai ${!showAnswer ? 'hidden' : ''}`}
+                data-testid="speaking-question"
+                className="speaking-question"
             >
-                {item.thai}
+                {questionText}
             </div>
+            {questionLine2 && (
+                <div
+                    data-testid="speaking-question-secondary"
+                    className="speaking-question-secondary"
+                >
+                    {questionLine2}
+                </div>
+            )}
             <div
-                data-testid="speaking-latinised"
-                className={`speaking-latinised ${!showAnswer ? 'hidden' : ''}`}
+                data-testid="speaking-solution"
+                className={`speaking-solution ${!showAnswer ? 'hidden' : ''}`}
             >
-                {item.latinised}
+                {solutionLine1}
             </div>
+            {solutionLine2 && (
+                <div
+                    data-testid="speaking-solution-secondary"
+                    className={`speaking-solution-secondary ${!showAnswer ? 'hidden' : ''}`}
+                >
+                    {solutionLine2}
+                </div>
+            )}
         </div>
     );
 }
@@ -436,6 +492,7 @@ export function SpeakingDeck({ onBack }: { onBack: () => void }) {
     const [deck, setDeck] = useState<SpeakingChallenge[]>(() => shuffleArray(SPEAKING_CHALLENGES));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showAnswer, setShowAnswer] = useState(false);
+    const [direction, setDirection] = useState<QuizDirection>('en-to-th');
 
     const isDeckComplete = currentIndex >= deck.length;
 
@@ -470,6 +527,11 @@ export function SpeakingDeck({ onBack }: { onBack: () => void }) {
         setShowAnswer(false);
     }
 
+    function handleToggleDirection() {
+        setDirection(d => d === 'en-to-th' ? 'th-to-en' : 'en-to-th');
+        setShowAnswer(false);
+    }
+
     return (
         <div className="container">
             {isDeckComplete ? (
@@ -484,7 +546,14 @@ export function SpeakingDeck({ onBack }: { onBack: () => void }) {
                 </div>
             ) : (
                 <div className="centred">
-                    <SpeakingCard item={deck[currentIndex]} showAnswer={showAnswer} />
+                    <button
+                        data-testid="toggle-direction-btn"
+                        className="direction-toggle"
+                        onClick={handleToggleDirection}
+                    >
+                        {direction === 'en-to-th' ? 'EN → TH' : 'TH → EN'}
+                    </button>
+                    <SpeakingCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />
                     <button
                         data-testid="play-btn"
                         className="play-button"
