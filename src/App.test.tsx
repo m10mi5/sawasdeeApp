@@ -5,7 +5,7 @@ import { TONAL_RULES } from './tonalRules';
 import { VOWELS } from './vowels';
 import { VOCABULARY } from './vocabulary';
 import { SPEAKING_CHALLENGES } from './speakingChallenges';
-import { shuffleArray } from './utils';
+import { shuffleArray, autoFitStyle } from './utils';
 import App, { FlashcardDeck, VocabularyDeck, SpeakingDeck } from './App';
 
 vi.mock('./speech', () => ({
@@ -117,13 +117,13 @@ describe('<App /> home screen', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Vocabulary'));
         // Should show vocabulary deck, not "Coming soon"
-        expect(getByText('Show Solution')).toBeTruthy();
+        expect(getByText('Show Answer')).toBeTruthy();
     });
 
     it('navigates to vocabulary deck and back', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Vocabulary'));
-        expect(getByText('Show Solution')).toBeTruthy();
+        expect(getByText('Show Answer')).toBeTruthy();
         fireEvent.click(getByText('Back to Menu'));
         expect(getByText('Script')).toBeTruthy();
         expect(getByText('Vocabulary')).toBeTruthy();
@@ -188,26 +188,36 @@ describe('<VocabularyDeck />', () => {
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(true);
     });
 
-    it('shows solution after pressing "Show Solution"', () => {
+    it('shows solution after pressing "Show Answer"', () => {
         const { getByText, getByTestId } = renderVocabDeck();
-        fireEvent.click(getByText('Show Solution'));
+        fireEvent.click(getByText('Show Answer'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
     });
 
-    it('hides solution again after pressing "Hide Solution"', () => {
+    it('hides solution again after pressing "Hide Answer"', () => {
         const { getByText, getByTestId } = renderVocabDeck();
-        fireEvent.click(getByText('Show Solution'));
-        fireEvent.click(getByText('Hide Solution'));
+        fireEvent.click(getByText('Show Answer'));
+        fireEvent.click(getByText('Hide Answer'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
     });
 
-    it('advances to next card', () => {
+    it('advances to next card and hides solution', () => {
         const { getByText, getByTestId } = renderVocabDeck();
+        fireEvent.click(getByText('Show Answer'));
         const first = getByTestId('vocab-question-primary').textContent;
         fireEvent.click(getByText('Next'));
         const second = getByTestId('vocab-question-primary').textContent;
         expect(second).not.toBe(first);
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+    });
+
+    it('hides solution after pressing Previous', () => {
+        const { getByText, getByTestId } = renderVocabDeck();
+        fireEvent.click(getByText('Next'));
+        fireEvent.click(getByText('Show Answer'));
+        fireEvent.click(getByText('Previous'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
     });
 
     it('speaks the Thai text when play is pressed', () => {
@@ -242,10 +252,10 @@ describe('<VocabularyDeck />', () => {
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(true);
     });
 
-    it('reveals solution after pressing Show Solution in EN → TH direction', () => {
+    it('reveals solution after pressing Show Answer in EN → TH direction', () => {
         const { getByTestId, getByText } = renderVocabDeck();
         fireEvent.click(getByTestId('toggle-direction-btn'));
-        fireEvent.click(getByText('Show Solution'));
+        fireEvent.click(getByText('Show Answer'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
     });
@@ -253,13 +263,66 @@ describe('<VocabularyDeck />', () => {
     it('resets answer visibility when toggling direction', () => {
         const { getByTestId, getByText } = renderVocabDeck();
         // Show answer in th-to-en
-        fireEvent.click(getByText('Show Solution'));
+        fireEvent.click(getByText('Show Answer'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
         // Switch direction — answer should reset to hidden
         fireEvent.click(getByTestId('toggle-direction-btn'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
     });
 });
+
+// ── 2b-fixed. Card text fields use fixed height (no layout shift) ───────────
+
+describe('Card text fields have fixed layout', () => {
+    it('VocabularyDeck text fields render full content without truncation', () => {
+        const { getByTestId, getByText } = renderVocabDeck();
+        // Show the answer so all fields are populated
+        fireEvent.click(getByText('Show Answer'));
+        const question = getByTestId('vocab-question-primary');
+        const questionSec = getByTestId('vocab-question-secondary');
+        const solution = getByTestId('vocab-solution-primary');
+        const solutionSec = getByTestId('vocab-solution-secondary');
+        // All text fields must have non-empty text content
+        expect(question.textContent!.length).toBeGreaterThan(0);
+        expect(questionSec.textContent!.length).toBeGreaterThan(0);
+        expect(solution.textContent!.length).toBeGreaterThan(0);
+        expect(solutionSec.textContent!.length).toBeGreaterThan(0);
+        // Text content must match a real item from the dataset (not truncated)
+        const item = VOCABULARY.find(v => v.latinised === question.textContent || v.english === question.textContent);
+        expect(item).toBeDefined();
+    });
+
+    it('SpeakingDeck text fields render full content without truncation', () => {
+        const { getByTestId, getByText } = renderSpeakingDeck();
+        fireEvent.click(getByText('Show Answer'));
+        const question = getByTestId('speaking-question');
+        const solution = getByTestId('speaking-solution');
+        expect(question.textContent!.length).toBeGreaterThan(0);
+        expect(solution.textContent!.length).toBeGreaterThan(0);
+        // Question text must match a real item (not truncated)
+        const item = SPEAKING_CHALLENGES.find(c => c.prompt === question.textContent || c.thai === question.textContent);
+        expect(item).toBeDefined();
+    });
+
+    it('autoFitStyle returns undefined for short text', () => {
+        expect(autoFitStyle('hello', 28)).toBeUndefined();
+    });
+
+    it('autoFitStyle returns a reduced fontSize for long text', () => {
+        const long = 'Chiang Mai University is opposite the mountain.';
+        const style = autoFitStyle(long, 28);
+        expect(style).toBeDefined();
+        expect(style!.fontSize).toBeLessThan(28);
+        expect(style!.fontSize).toBeGreaterThanOrEqual(11);
+    });
+
+    it('autoFitStyle never goes below 11px', () => {
+        const veryLong = 'a'.repeat(200);
+        const style = autoFitStyle(veryLong, 32);
+        expect(style!.fontSize).toBe(11);
+    });
+});
+
 // ── 2c. <SpeakingDeck /> ────────────────────────────────────────────────────────────
 
 function renderSpeakingDeck() {
@@ -278,7 +341,7 @@ describe('<SpeakingDeck />', () => {
     it('shows a category label', () => {
         const { getByTestId } = renderSpeakingDeck();
         const cat = getByTestId('speaking-category');
-        expect(['Modal Verbs', 'Directions', 'Food Ordering']).toContain(cat.textContent);
+        expect(['Modal Verbs', 'Directions', 'Food Ordering', 'Places', 'Daily Activities', 'Numbers']).toContain(cat.textContent);
     });
 
     it('hides solution by default', () => {
@@ -404,12 +467,12 @@ describe('Vowel deck rendering', () => {
         expect(el.style.color).toBe(LENGTH_COLORS[length]);
     });
 
-    it('hides vowel detail labels after pressing "Hide Details"', () => {
+    it('shows vowel detail labels after pressing "Show Details"', () => {
         const { getByText, getByTestId } = renderVowelDeck();
-        fireEvent.click(getByText('Hide Details'));
-        expect(getByTestId('vowel-length-label').classList.contains('hidden')).toBe(true);
-        expect(getByTestId('vowel-name-label').classList.contains('hidden')).toBe(true);
-        expect(getByTestId('vowel-romanisation-label').classList.contains('hidden')).toBe(true);
+        fireEvent.click(getByText('Show Details'));
+        expect(getByTestId('vowel-length-label').classList.contains('hidden')).toBe(false);
+        expect(getByTestId('vowel-name-label').classList.contains('hidden')).toBe(false);
+        expect(getByTestId('vowel-romanisation-label').classList.contains('hidden')).toBe(false);
     });
 });
 
@@ -451,6 +514,23 @@ describe('Next button', () => {
         expect(after).not.toBe(before);
     });
 
+    it('resets details visibility after pressing Next', () => {
+        const { getByText, getByTestId } = renderDeck();
+        fireEvent.click(getByText('Show Details'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByText('Next'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
+    });
+
+    it('resets details visibility after pressing Previous', () => {
+        const { getByText, getByTestId } = renderDeck();
+        fireEvent.click(getByText('Next'));
+        fireEvent.click(getByText('Show Details'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByText('Previous'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
+    });
+
     it('shows "Deck Complete!" after pressing Next 44 times', () => {
         const { getByText } = renderDeck();
         for (let i = 0; i < 44; i++) {
@@ -483,35 +563,35 @@ describe('Previous button', () => {
 // ── 7. Show/Hide Details toggle ──────────────────────────────────────────────
 
 describe('Show/Hide Details toggle', () => {
-    it('shows the class label by default', () => {
+    it('hides the class label by default', () => {
         const { getByTestId } = renderDeck();
-        expect(getByTestId('class-label').classList.contains('hidden')).toBe(false);
-    });
-
-    it('hides the class, name and meaning labels after pressing "Hide Details"', () => {
-        const { getByText, getByTestId } = renderDeck();
-        fireEvent.click(getByText('Hide Details'));
         expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
-        expect(getByTestId('name-label').classList.contains('hidden')).toBe(true);
-        expect(getByTestId('meaning-label').classList.contains('hidden')).toBe(true);
     });
 
-    it('shows "Show Details" button label while hidden and "Hide Details" while shown', () => {
-        const { getByText } = renderDeck();
-        expect(getByText('Hide Details')).toBeTruthy();
-        fireEvent.click(getByText('Hide Details'));
-        expect(getByText('Show Details')).toBeTruthy();
-        fireEvent.click(getByText('Show Details'));
-        expect(getByText('Hide Details')).toBeTruthy();
-    });
-
-    it('restores all detail labels after toggling back to "Hide Details"', () => {
+    it('shows the class, name and meaning labels after pressing "Show Details"', () => {
         const { getByText, getByTestId } = renderDeck();
-        fireEvent.click(getByText('Hide Details'));
         fireEvent.click(getByText('Show Details'));
         expect(getByTestId('class-label').classList.contains('hidden')).toBe(false);
         expect(getByTestId('name-label').classList.contains('hidden')).toBe(false);
         expect(getByTestId('meaning-label').classList.contains('hidden')).toBe(false);
+    });
+
+    it('shows "Show Details" button label while hidden and "Hide Details" while shown', () => {
+        const { getByText } = renderDeck();
+        expect(getByText('Show Details')).toBeTruthy();
+        fireEvent.click(getByText('Show Details'));
+        expect(getByText('Hide Details')).toBeTruthy();
+        fireEvent.click(getByText('Hide Details'));
+        expect(getByText('Show Details')).toBeTruthy();
+    });
+
+    it('hides all detail labels after toggling back to "Show Details"', () => {
+        const { getByText, getByTestId } = renderDeck();
+        fireEvent.click(getByText('Show Details'));
+        fireEvent.click(getByText('Hide Details'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('name-label').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('meaning-label').classList.contains('hidden')).toBe(true);
     });
 });
 

@@ -4,7 +4,7 @@ import { TonalRule, TONAL_RULES } from './tonalRules';
 import { Vowel, VOWELS } from './vowels';
 import { VocabItem, VOCABULARY } from './vocabulary';
 import { SpeakingChallenge, SPEAKING_CHALLENGES } from './speakingChallenges';
-import { shuffleArray } from './utils';
+import { shuffleArray, autoFitStyle } from './utils';
 import { speakThai } from './speech';
 
 // ─── Shared type ─────────────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ interface FlashcardDeckProps {
 export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
     const [deck, setDeck] = useState<FlashcardItem[]>(() => shuffleArray(data));
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [showDetails, setShowDetails] = useState(true);
+    const [showDetails, setShowDetails] = useState(false);
 
     const isDeckComplete = currentIndex >= deck.length;
 
@@ -178,6 +178,17 @@ export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
 
     function handleBackToStart() {
         setCurrentIndex(0);
+        setShowDetails(false);
+    }
+
+    function handleNext() {
+        setCurrentIndex(i => i + 1);
+        setShowDetails(false);
+    }
+
+    function handlePrev() {
+        setCurrentIndex(i => i - 1);
+        setShowDetails(false);
     }
 
     function handleSpeak() {
@@ -227,13 +238,13 @@ export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
                             data-testid="prev-btn"
                             className="button"
                             disabled={currentIndex === 0}
-                            onClick={() => setCurrentIndex(i => i - 1)}
+                            onClick={handlePrev}
                         >
                             Previous
                         </button>
                         <button
                             className="button"
-                            onClick={() => setCurrentIndex(i => i + 1)}
+                            onClick={handleNext}
                         >
                             Next
                         </button>
@@ -287,24 +298,28 @@ function VocabCard({ item, showAnswer, direction }: VocabCardProps) {
             <div
                 data-testid="vocab-question-primary"
                 className="vocab-question-primary"
+                style={autoFitStyle(questionLine1, 32)}
             >
                 {questionLine1}
             </div>
             <div
                 data-testid="vocab-question-secondary"
                 className="vocab-question-secondary"
+                style={autoFitStyle(questionLine2, 16)}
             >
                 {questionLine2}
             </div>
             <div
                 data-testid="vocab-solution-primary"
                 className={`vocab-solution-primary ${!showAnswer ? 'hidden' : ''}`}
+                style={autoFitStyle(solutionLine1, 16)}
             >
                 {solutionLine1}
             </div>
             <div
                 data-testid="vocab-solution-secondary"
                 className={`vocab-solution-secondary ${!showAnswer ? 'hidden' : ''}`}
+                style={autoFitStyle(solutionLine2, 13)}
             >
                 {solutionLine2}
             </div>
@@ -336,6 +351,16 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
 
     function handleBackToStart() {
         setCurrentIndex(0);
+        setShowAnswer(false);
+    }
+
+    function handleNext() {
+        setCurrentIndex(i => i + 1);
+        setShowAnswer(false);
+    }
+
+    function handlePrev() {
+        setCurrentIndex(i => i - 1);
         setShowAnswer(false);
     }
 
@@ -382,20 +407,20 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
                         className="toggle-button"
                         onClick={() => setShowAnswer(v => !v)}
                     >
-                        {showAnswer ? 'Hide Solution' : 'Show Solution'}
+                        {showAnswer ? 'Hide Answer' : 'Show Answer'}
                     </button>
                     <div className="button-row">
                         <button
                             data-testid="prev-btn"
                             className="button"
                             disabled={currentIndex === 0}
-                            onClick={() => setCurrentIndex(i => i - 1)}
+                            onClick={handlePrev}
                         >
                             Previous
                         </button>
                         <button
                             className="button"
-                            onClick={() => setCurrentIndex(i => i + 1)}
+                            onClick={handleNext}
                         >
                             Next
                         </button>
@@ -441,12 +466,15 @@ function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
     const categoryLabel =
         item.category === 'food-ordering' ? 'Food Ordering'
         : item.category === 'modals' ? 'Modal Verbs'
-        : 'Directions';
+        : item.category === 'directions' ? 'Directions'
+        : item.category === 'places' ? 'Places'
+        : item.category === 'daily-activities' ? 'Daily Activities'
+        : 'Numbers';
 
     const enToTh = direction === 'en-to-th';
     const questionText = enToTh ? item.prompt : item.thai;
-    const solutionLine1 = enToTh ? item.thai : item.prompt;
-    const solutionLine2 = enToTh ? item.latinised : null;
+    const solutionLine1 = enToTh ? item.latinised : item.prompt;
+    const solutionLine2 = enToTh ? item.thai : null;
     const questionLine2 = enToTh ? null : item.latinised;
 
     return (
@@ -457,6 +485,7 @@ function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
             <div
                 data-testid="speaking-question"
                 className="speaking-question"
+                style={autoFitStyle(questionText, 28)}
             >
                 {questionText}
             </div>
@@ -464,6 +493,7 @@ function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
                 <div
                     data-testid="speaking-question-secondary"
                     className="speaking-question-secondary"
+                    style={autoFitStyle(questionLine2, 16)}
                 >
                     {questionLine2}
                 </div>
@@ -471,6 +501,7 @@ function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
             <div
                 data-testid="speaking-solution"
                 className={`speaking-solution ${!showAnswer ? 'hidden' : ''}`}
+                style={autoFitStyle(solutionLine1, 32)}
             >
                 {solutionLine1}
             </div>
@@ -478,6 +509,7 @@ function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
                 <div
                     data-testid="speaking-solution-secondary"
                     className={`speaking-solution-secondary ${!showAnswer ? 'hidden' : ''}`}
+                    style={autoFitStyle(solutionLine2, 16)}
                 >
                     {solutionLine2}
                 </div>

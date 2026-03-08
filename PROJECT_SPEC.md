@@ -57,7 +57,7 @@ thaiscript/
     ├── vowels.ts       # VOWELS array + Vowel interface
     ├── vocabulary.ts   # VOCABULARY array + VocabItem interface
     ├── speakingChallenges.ts  # SPEAKING_CHALLENGES array + SpeakingChallenge interface
-    └── utils.ts        # shuffleArray<T>() pure function
+    └── utils.ts        # shuffleArray<T>(), autoFitStyle() pure functions
 ```
 
 ---
@@ -239,17 +239,20 @@ export interface SpeakingChallenge {
   prompt: string;                             // English prompt, e.g. 'I want to eat pad thai'
   thai: string;                               // Thai script answer, e.g. 'อยากกินผัดไทย'
   latinised: string;                          // Romanised answer, e.g. 'yàak gin phàt thai'
-  category: 'modals' | 'directions' | 'food-ordering';
+  category: 'modals' | 'directions' | 'food-ordering' | 'places' | 'daily-activities' | 'numbers';
 }
 ```
 
-### Content — 46 speaking challenges
+### Content — 89 speaking challenges
 
 | Category | Count | Examples |
 |---|---|---|
 | modals | 15 | "I want to eat pad thai", "Can you speak Thai?", "I must go now" |
 | directions | 15 | "Where is the train station?", "Turn left at the market", "Is it far?" |
-| food-ordering | 16 | "I'd like fried rice, please", "Not too spicy", "Check, please" |
+| food-ordering | 15 | "I'd like fried rice, please", "Not too spicy", "Check, please" |
+| places | 15 | "Where is the bathroom?", "The restaurant is near the hotel.", "Go straight then turn left." |
+| daily-activities | 14 | "Where are you going?", "We go to work.", "I like to see movie." |
+| numbers | 15 | "How many baht is that one?", "Can you reduce the price?", "How old are you?" |
 
 ---
 
@@ -276,7 +279,7 @@ Discriminant chain in `Card`:
 
 ---
 
-## Shuffle Logic — `utils.ts`
+## Utilities — `utils.ts`
 
 ```ts
 export function shuffleArray<T>(array: T[]): T[]
@@ -286,6 +289,15 @@ export function shuffleArray<T>(array: T[]): T[]
 - Operates on a **copy** of the input — the original array is never mutated.
 - Returns the shuffled copy.
 - Exported as a standalone pure function so it can be unit-tested in isolation.
+
+```ts
+export function autoFitStyle(text: string, basePx: number): React.CSSProperties | undefined
+```
+
+- Returns an inline style (`{ fontSize, lineHeight }`) when `text` is too long to fit a single line at `basePx` inside the 368 px usable card width.
+- Returns `undefined` for short text (CSS defaults apply).
+- Uses character-count heuristic with `CHAR_RATIO = 0.55` and `MIN_FONT = 11`.
+- Applied in `VocabCard` and `SpeakingCard` to every text field.
 
 ---
 
@@ -409,7 +421,7 @@ Uses **role-based rendering**: content is assigned to question/solution slots ba
 
 | Direction | Question | Question secondary | Solution | Solution secondary |
 |---|---|---|---|---|
-| `'en-to-th'` | `item.prompt` | *(none)* | `item.thai` | `item.latinised` |
+| `'en-to-th'` | `item.prompt` | *(none)* | `item.latinised` | `item.thai` |
 | `'th-to-en'` | `item.thai` | `item.latinised` | `item.prompt` | *(none)* |
 
 | Element | CSS class | Detail | data-testid | Hidden when |
@@ -449,8 +461,8 @@ const isDeckComplete = currentIndex >= deck.length;
 - `<VocabCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />`
 - **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
 - **Show/Hide solution** toggle — label reads "Hide Solution" / "Show Solution" regardless of direction; `data-testid="toggle-answer-btn"`
-- **Previous / Next** row — Previous disabled at index 0
-- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0
+- **Previous / Next** row — Previous disabled at index 0; navigating resets `showAnswer` to `false`
+- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0; both reset `showAnswer` to `false`
 - **Back to Menu** button — calls `onBack`
 
 *Deck Complete screen* (shown when `isDeckComplete`):
@@ -494,7 +506,7 @@ interface FlashcardDeckProps {
 |---|---|---|
 | `deck` | `FlashcardItem[]` | `shuffleArray(data)` — reshuffled on mount and on restart/shuffle |
 | `currentIndex` | `number` | Zero-based index of the card being shown |
-| `showDetails` | `boolean` | Whether the detail fields are visible (default `true`) |
+| `showDetails` | `boolean` | Whether the detail fields are visible (default `false`) |
 
 **Derived**
 
@@ -509,8 +521,8 @@ const isDeckComplete = currentIndex >= deck.length;
 - `<Card item={deck[currentIndex]} showDetails={showDetails} />`
 - **▶ Listen** button — calls `speakThai(text)` where `text` is `item.thaiName` for consonants, `item.symbol` for vowels, or `item.thaiWord` for tonal rules; `data-testid="play-btn"`
 - **Show/Hide Details** toggle — label reads "Hide Details" when visible, "Show Details" when hidden
-- **Previous / Next** row — Previous disabled at index 0
-- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0
+- **Previous / Next** row — Previous disabled at index 0; navigating resets `showDetails` to `false`
+- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0; Back to Start resets `showDetails` to `false`
 - **Back to Menu** button — calls `onBack`
 
 *Deck Complete screen* (shown when `isDeckComplete`):
@@ -634,28 +646,29 @@ function renderSpeakingDeck() {
 | Navigates to vowels deck via Script | After Script → Practice Vowels, `vowel-length-label` is present |
 | Returns from script menu to home | After Script → Back, home buttons are visible |
 | Returns from deck to script menu | After Script → deck → Back to Menu, script deck buttons visible |
-| Shows vocabulary deck | After clicking "Vocabulary", "Show Solution" toggle is visible |
+| Shows vocabulary deck | After clicking "Vocabulary", "Show Answer" toggle is visible |
 | Navigates to vocabulary deck and back | After Vocabulary → Back to Menu, home buttons are visible |
 | Navigates to speaking deck | After clicking "Speaking", "Show Answer" toggle is visible |
 | Navigates to speaking deck and back | After Speaking → Back to Menu, home buttons are visible |
 | Shows placeholder for Pronunciation | After clicking "Pronunciation", "Coming soon" is visible |
 | Returns from placeholder to home | After Pronunciation → Back, home buttons are visible |
 
-#### 2b. `<VocabularyDeck />` (12 tests)
+#### 2b. `<VocabularyDeck />` (14 tests)
 
 | Test | Assertion |
 |---|---|
 | Shows question text | `vocab-question-primary` contains a value from `VOCABULARY` |
 | Shows secondary question text | `vocab-question-secondary` is present |
 | Hides solution by default | `vocab-solution-primary` and `vocab-solution-secondary` have CSS class `hidden` |
-| Shows solution after toggle | After "Show Solution", `vocab-solution-primary` loses `hidden` class |
-| Hides solution on re-toggle | After show then "Hide Solution", `vocab-solution-primary` regains `hidden` class |
-| Advances to next card | After Next, `vocab-question-primary` text changes |
+| Shows solution after toggle | After "Show Answer", `vocab-solution-primary` loses `hidden` class |
+| Hides solution on re-toggle | After show then "Hide Answer", `vocab-solution-primary` regains `hidden` class |
+| Advances to next card and hides solution | After Show Answer + Next, question changes and solution is hidden again |
+| Hides solution after pressing Previous | After Next + Show Answer + Previous, solution is hidden |
 | Speaks Thai on play | `speakThai` called with a value from `VOCABULARY.map(v => v.thai)` |
 | Deck Complete after all cards | After clicking Next `VOCABULARY.length` times, "Deck Complete!" is visible |
 | Direction toggle defaults to TH → EN | `toggle-direction-btn` reads "TH → EN" on first render |
 | Switches to EN → TH and swaps content | After toggle, question/solution swap content |
-| Reveals solution in EN → TH | After toggle + "Show Solution", solution loses `hidden` class |
+| Reveals solution in EN → TH | After toggle + "Show Answer", solution loses `hidden` class |
 | Resets answer on direction change | After showing answer then toggling direction, solution is hidden again |
 
 #### 2c. `<SpeakingDeck />` (12 tests)
@@ -663,7 +676,7 @@ function renderSpeakingDeck() {
 | Test | Assertion |
 |---|---|
 | Shows question text | `speaking-question` contains a value from `SPEAKING_CHALLENGES` |
-| Shows a category label | `speaking-category` contains one of "Modal Verbs", "Directions", "Food Ordering" |
+| Shows a category label | `speaking-category` contains one of "Modal Verbs", "Directions", "Food Ordering", "Places", "Daily Activities", "Numbers" |
 | Hides solution by default | `speaking-solution` has CSS class `hidden` |
 | Shows solution after toggle | After "Show Answer", `speaking-solution` loses `hidden` class |
 | Hides answer on re-toggle | After show then "Hide Answer", `speaking-solution` regains `hidden` class |
@@ -674,6 +687,16 @@ function renderSpeakingDeck() {
 | Switches to TH → EN and swaps content | After toggle, question shows thai, solution is hidden |
 | Reveals solution in TH → EN | After toggle + "Show Answer", `speaking-solution` loses `hidden` class |
 | Resets answer on direction change | After showing answer then toggling direction, solution is hidden again |
+
+#### 2-fixed. Card text fields have fixed layout (4 tests)
+
+| Test | Assertion |
+|---|---|
+| VocabularyDeck text fields render full content | All four text fields have non-empty content matching a real `VOCABULARY` item |
+| SpeakingDeck text fields render full content | Question and solution text match a real `SPEAKING_CHALLENGES` item |
+| autoFitStyle returns undefined for short text | Short text gets no inline style override |
+| autoFitStyle returns reduced fontSize for long text | Long text gets a fontSize < basePx and >= 11 |
+| autoFitStyle never goes below 11px | Very long text clamps at fontSize 11 |
 
 #### 3. `<FlashcardDeck />` rendering (4 tests)
 
@@ -691,7 +714,7 @@ function renderSpeakingDeck() {
 | Shows a length label | `vowel-length-label` contains one of Short / Long / Diphthong |
 | Shows the vowel name label | `vowel-name-label` is present |
 | Length label colour correct | `style.color` matches the length-to-rgb mapping |
-| Hides vowel detail labels | After "Hide Details", `vowel-length-label`, `vowel-name-label`, `vowel-romanisation-label` all have CSS class `hidden` |
+| Shows vowel detail labels | After "Show Details", `vowel-length-label`, `vowel-name-label`, `vowel-romanisation-label` all lose CSS class `hidden` |
 
 #### 5. Play button (3 tests)
 
@@ -701,11 +724,13 @@ function renderSpeakingDeck() {
 | Speaks tonal rule thai word | `speakThai` called with a value from `TONAL_RULES.map(r => r.thaiWord)` |
 | Speaks vowel symbol | `speakThai` called with a value from `VOWELS.map(v => v.symbol)` |
 
-#### 6. Next button (2 tests)
+#### 6. Next button (4 tests)
 
 | Test | Assertion |
 |---|---|
 | Advances the card | After one click the displayed character changes |
+| Resets details after Next | After Show Details + Next, `class-label` gains `hidden` class |
+| Resets details after Previous | After Next + Show Details + Previous, `class-label` gains `hidden` class |
 | Reaches completion | After 44 clicks "Deck Complete!" is visible |
 
 #### 7. Previous button (2 tests)
@@ -719,10 +744,10 @@ function renderSpeakingDeck() {
 
 | Test | Assertion |
 |---|---|
-| Visible by default | `class-label` does not have CSS class `hidden` on first render |
-| Hides all detail labels | After "Hide Details", `class-label`, `name-label`, `meaning-label` all have class `hidden` |
+| Hidden by default | `class-label` has CSS class `hidden` on first render |
+| Shows all detail labels | After "Show Details", `class-label`, `name-label`, `meaning-label` all lose class `hidden` |
 | Button label flips | Reads "Show Details" while hidden, "Hide Details" while shown |
-| Restores on re-click | After hide then show, all three labels no longer have class `hidden` |
+| Hides on re-click | After show then hide, all three labels have class `hidden` again |
 
 #### 9. Back to Start button (3 tests)
 
@@ -814,3 +839,4 @@ npm run preview
 13. **Web Speech API TTS** — `speakThai()` wraps `SpeechSynthesisUtterance` with `lang = 'th'`; no audio asset files are needed. Thai voice availability depends on the user's OS/browser.
 14. **Vowel deck mirrors consonant card** — `Vowel` cards reuse the same CSS classes as consonant cards; `LENGTH_COLORS` maps Short/Long/Diphthong to the same blue/green/orange palette as CLASS_COLORS. The `symbol` field always includes ก as the base consonant so the vowel form is visible and immediately pronounceable by TTS.
 15. **GitHub Actions CI/CD** — every push to `main` runs typecheck + tests, then builds and deploys to GitHub Pages. No manual deployment step.
+16. **Fixed card text field layout** — card text rows (`.vocab-question-primary`, `.speaking-question`, etc.) use a fixed CSS `height` with `overflow: hidden`. Long text is auto-shrunk via the `autoFitStyle()` utility, which reduces font size (and line-height) based on character count so text always fits in a single line. Minimum font is 11 px. This keeps card structure stable — positions of all fields are fixed regardless of content length. This invariant is enforced by CI tests in the "Card text fields have fixed layout" test group.

@@ -2,7 +2,7 @@ export interface SpeakingChallenge {
     prompt: string;
     thai: string;
     latinised: string;
-    category: 'modals' | 'directions' | 'food-ordering';
+    category: 'modals' | 'directions' | 'food-ordering' | 'places' | 'daily-activities' | 'numbers';
 }
 
 export const SPEAKING_CHALLENGES: SpeakingChallenge[] = [
@@ -54,4 +54,51 @@ export const SPEAKING_CHALLENGES: SpeakingChallenge[] = [
     { prompt: 'One more beer, please', thai: 'ขอเบียร์อีกหนึ่งขวด', latinised: 'khǒo bia ìik nùeng khùat', category: 'food-ordering' },
     { prompt: 'Water, please', thai: 'ขอน้ำครับ', latinised: 'khǒo nám kráp', category: 'food-ordering' },
     { prompt: 'I want pad thai with egg', thai: 'เอาผัดไทยใส่ไข่', latinised: 'ao phàt thai sài khài', category: 'food-ordering' },
+    // ── Places ─────────────────────────────────────────────────────────────
+    { prompt: 'Where is the bathroom?', thai: 'ห้องน้ำอยู่ที่ไหน', latinised: 'hông nám yùu thîi nǎi', category: 'places' },
+    { prompt: 'The bathroom is here.', thai: 'ห้องน้ำอยู่ที่นี่', latinised: 'hông nám yùu thîi nîi', category: 'places' },
+    { prompt: 'The restaurant is near the hotel.', thai: 'ร้านอาหารอยู่ใกล้โรงแรม', latinised: 'ráan aa hǎan yùu glâi roong raem', category: 'places' },
+    { prompt: 'Chiang Mai University is opposite the mountain.', thai: 'มหาวิทยาลัยเชียงใหม่อยู่ตรงข้ามภูเขา', latinised: 'má hǎa wít thá yaa lái chiang mài yùu dtrong khâam phuu kháo', category: 'places' },
+    { prompt: 'I like to go to the sea very much.', thai: 'ผมชอบไปทะเลมาก', latinised: 'pǒm chôop bpai thá leh mâak', category: 'places' },
+    { prompt: 'He doesn\'t like to go to the hospital.', thai: 'เขาไม่ชอบไปโรงพยาบาล', latinised: 'kháo mâi chôop bpai roong phá yaa baan', category: 'places' },
+    { prompt: 'Is that true?', thai: 'จริงเหรอ', latinised: 'jing rǔe', category: 'places' },
+    { prompt: 'That is true.', thai: 'จริงจริง', latinised: 'jing jing', category: 'places' },
+    { prompt: 'Go straight then turn left.', thai: 'ตรงไปแล้วเลี้ยวซ้าย', latinised: 'dtrong bpai láew líaw sáai', category: 'places' },
+    { prompt: 'Where is a Thai restaurant?', thai: 'ร้านอาหารไทยอยู่ที่ไหน', latinised: 'ráan aa hǎan thai yùu thîi nǎi', category: 'places' },
+    { prompt: 'Turn right at the hospital.', thai: 'เลี้ยวขวาที่โรงพยาบาล', latinised: 'líaw khwǎa thîi roong phá yaa baan', category: 'places' },
+    { prompt: 'Where do you like to take a trip?', thai: 'คุณชอบไปเที่ยวที่ไหน', latinised: 'khun chôop bpai thîaw thîi nǎi', category: 'places' },
+    { prompt: 'She likes to go to the waterfall.', thai: 'เขาชอบไปน้ำตก', latinised: 'kháo chôop bpai nám dtòk', category: 'places' },
+    { prompt: 'I like spicy food.', thai: 'ผมชอบอาหารเผ็ด', latinised: 'pǒm chôop aa hǎan phèt', category: 'places' },
+    { prompt: 'Where have you been?', thai: 'ไปไหนมา', latinised: 'bpai nǎi maa', category: 'places' },
+    // ── Daily activities ───────────────────────────────────────────────────
+    { prompt: 'Where are you going?', thai: 'คุณไปไหน', latinised: 'khun bpai nǎi', category: 'daily-activities' },
+    { prompt: 'We go to work.', thai: 'เราไปทำงาน', latinised: 'rao bpai tham ngaan', category: 'daily-activities' },
+    { prompt: 'I like to see movie.', thai: 'ผมชอบดูหนัง', latinised: 'pǒm chôop duu nǎng', category: 'daily-activities' },
+    { prompt: 'I like to eat Thai food too.', thai: 'ผมชอบกินอาหารไทยด้วย', latinised: 'pǒm chôop gin aa hǎan thai dûai', category: 'daily-activities' },
+    { prompt: 'Shall we go to walk together?', thai: 'ไปเดินเล่นด้วยกันไหม', latinised: 'bpai dooen lên dûai gan mǎi', category: 'daily-activities' },
+    { prompt: 'I don\'t know.', thai: 'ไม่รู้', latinised: 'mâi rúu', category: 'daily-activities' },
+    { prompt: 'I want to dance with you.', thai: 'ผมอยากเต้นกับคุณ', latinised: 'pǒm yàak dtên gàp khun', category: 'daily-activities' },
+    { prompt: 'He does not want to sleep.', thai: 'เขาไม่อยากนอน', latinised: 'kháo mâi yàak nawn', category: 'daily-activities' },
+    { prompt: 'Can you speak English?', thai: 'คุณพูดภาษาอังกฤษได้ไหม', latinised: 'khun phûut phaa sǎa ang grìt dâi mǎi', category: 'daily-activities' },
+    { prompt: 'I can speak a little bit Thai.', thai: 'ผมพูดภาษาไทยได้นิดหน่อย', latinised: 'pǒm phûut phaa sǎa thai dâi nít nòi', category: 'daily-activities' },
+    { prompt: 'Say again please.', thai: 'พูดอีกที', latinised: 'phûut ìik thii', category: 'daily-activities' },
+    { prompt: 'We like to eat Japanese food so much.', thai: 'เราชอบกินอาหารญี่ปุ่นมาก', latinised: 'rao chôop gin aa hǎan yîi bpùn mâak', category: 'daily-activities' },
+    { prompt: 'Speak slowly please.', thai: 'พูดช้าช้าหน่อย', latinised: 'phûut cháa cháa nòi', category: 'daily-activities' },
+    { prompt: 'She swims very well.', thai: 'เขาว่ายน้ำเก่งมาก', latinised: 'kháo wâai nám gèng mâak', category: 'daily-activities' },
+    // ── Numbers ────────────────────────────────────────────────────────────
+    { prompt: 'How many baht is that one?', thai: 'อันนั้นกี่บาท', latinised: 'an nán gìi bàat', category: 'numbers' },
+    { prompt: 'This one is 125 baht.', thai: 'อันนี้หนึ่งร้อยยี่สิบห้าบาท', latinised: 'an nîi nùeng rói yîi sìp hâa bàat', category: 'numbers' },
+    { prompt: 'It is very expensive.', thai: 'แพงมาก', latinised: 'phaeng mâak', category: 'numbers' },
+    { prompt: 'Can you reduce the price?', thai: 'ลดหน่อยได้ไหม', latinised: 'lót nòi dâi mǎi', category: 'numbers' },
+    { prompt: 'I take this one.', thai: 'เอาอันนี้', latinised: 'ao an nîi', category: 'numbers' },
+    { prompt: 'All right.', thai: 'ได้', latinised: 'dâi', category: 'numbers' },
+    { prompt: 'What is your telephone number?', thai: 'โทรศัพท์เบอร์อะไร', latinised: 'thoo rá sàp boe à rai', category: 'numbers' },
+    { prompt: 'My telephone number is 081-234-9765.', thai: 'โทรศัพท์เบอร์ศูนย์แปดหนึ่งสองสามสี่เก้าเจ็ดหกห้า', latinised: 'thoo rá sàp boe sǔun bpàet nùeng sǎawng sǎam sìi gâo jèt hòk hâa', category: 'numbers' },
+    { prompt: 'How old are you?', thai: 'คุณอายุเท่าไร', latinised: 'khun aa yú thâo rài', category: 'numbers' },
+    { prompt: 'I am 68 years old.', thai: 'ผมอายุหกสิบแปดปี', latinised: 'pǒm aa yú hòk sìp bpàet bpii', category: 'numbers' },
+    { prompt: 'Can you swim?', thai: 'คุณว่ายน้ำได้ไหม', latinised: 'khun wâai nám dâi mǎi', category: 'numbers' },
+    { prompt: 'Can you eat spicy food?', thai: 'คุณกินอาหารเผ็ดได้ไหม', latinised: 'khun gin aa hǎan phèt dâi mǎi', category: 'numbers' },
+    { prompt: 'I cannot eat spicy food.', thai: 'ผมกินอาหารเผ็ดไม่ได้', latinised: 'pǒm gin aa hǎan phèt mâi dâi', category: 'numbers' },
+    { prompt: 'Can you dance with me?', thai: 'คุณเต้นกับผมได้ไหม', latinised: 'khun dtên gàp pǒm dâi mǎi', category: 'numbers' },
+    { prompt: 'This one comes from Japan.', thai: 'อันนี้มาจากญี่ปุ่น', latinised: 'an nîi maa jàak yîi bpùn', category: 'numbers' },
 ];

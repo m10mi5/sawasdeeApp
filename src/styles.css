@@ -317,8 +317,11 @@ body {
 }
 
 .back-button {
-  margin-top: 12px;
   background-color: #455a64;
+}
+
+.complete-text ~ .back-button {
+  margin-top: 8px;
 }
 
 .toggle-button {
@@ -424,7 +427,7 @@ body {
 
 .menu-button {
   width: 220px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 /* ── Small-height screens (e.g. phones in landscape, short devices) ── */
