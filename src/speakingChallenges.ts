@@ -1,11 +1,22 @@
-export interface SpeakingChallenge {
+export type ExerciseCategory = 'modals' | 'directions' | 'food-ordering' | 'places' | 'daily-activities' | 'numbers';
+
+export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
+    { id: 'modals', label: 'Modal Verbs' },
+    { id: 'directions', label: 'Directions' },
+    { id: 'food-ordering', label: 'Food Ordering' },
+    { id: 'places', label: 'Places' },
+    { id: 'daily-activities', label: 'Daily Activities' },
+    { id: 'numbers', label: 'Numbers' },
+];
+
+export interface Exercise {
     prompt: string;
     thai: string;
     latinised: string;
-    category: 'modals' | 'directions' | 'food-ordering' | 'places' | 'daily-activities' | 'numbers';
+    category: ExerciseCategory;
 }
 
-export const SPEAKING_CHALLENGES: SpeakingChallenge[] = [
+export const EXERCISES: Exercise[] = [
     // ── Modal verb combinations ────────────────────────────────────────────
     { prompt: 'I want to eat pad thai', thai: 'อยากกินผัดไทย', latinised: 'yàak gin phàt thai', category: 'modals' },
     { prompt: 'I want to go to the market', thai: 'อยากไปตลาด', latinised: 'yàak bpai dta làat', category: 'modals' },

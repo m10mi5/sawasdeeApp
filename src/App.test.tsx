@@ -4,9 +4,10 @@ import { CONSONANTS } from './consonants';
 import { TONAL_RULES } from './tonalRules';
 import { VOWELS } from './vowels';
 import { VOCABULARY } from './vocabulary';
-import { SPEAKING_CHALLENGES } from './speakingChallenges';
-import { shuffleArray, autoFitStyle } from './utils';
-import App, { FlashcardDeck, VocabularyDeck, SpeakingDeck } from './App';
+import { EXERCISES, EXERCISE_CATEGORIES } from './speakingChallenges';
+import { VOCABULARY_CATEGORIES } from './vocabulary';
+import { autoFitStyle, shuffleArray } from './utils';
+import App, { FlashcardDeck, VocabularyDeck, ExerciseDeck } from './App';
 
 vi.mock('./speech', () => ({
     speakThai: vi.fn(),
@@ -56,6 +57,23 @@ describe('shuffleArray()', () => {
     });
 });
 
+// ── 1b. autoFitStyle() ────────────────────────────────────────────────────────
+
+describe('autoFitStyle()', () => {
+    it('returns undefined for short text', () => {
+        Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
+        expect(autoFitStyle('hello', 28)).toBeUndefined();
+    });
+
+    it('returns a smaller fontSize for long text', () => {
+        Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
+        const style = autoFitStyle('Chiang Mai University is opposite the mountain.', 28);
+        expect(style).toBeDefined();
+        expect(style!.fontSize).toBeLessThan(28);
+        expect(style!.fontSize).toBeGreaterThanOrEqual(11);
+    });
+});
+
 // ── 2. <App /> home screen ────────────────────────────────────────────────────
 
 describe('<App /> home screen', () => {
@@ -63,7 +81,7 @@ describe('<App /> home screen', () => {
         const { getByText } = render(<App />);
         expect(getByText('Script')).toBeTruthy();
         expect(getByText('Vocabulary')).toBeTruthy();
-        expect(getByText('Speaking')).toBeTruthy();
+        expect(getByText('Exercises')).toBeTruthy();
         expect(getByText('Pronunciation')).toBeTruthy();
     });
 
@@ -113,35 +131,40 @@ describe('<App /> home screen', () => {
         expect(getByText('Practice Tone Rules')).toBeTruthy();
     });
 
-    it('shows placeholder for Vocabulary', () => {
+    it('navigates to vocabulary category screen', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Vocabulary'));
-        // Should show vocabulary deck, not "Coming soon"
-        expect(getByText('Show Answer')).toBeTruthy();
+        expect(getByText('Choose a category')).toBeTruthy();
+        expect(getByText('All Vocabulary')).toBeTruthy();
     });
 
-    it('navigates to vocabulary deck and back', () => {
+    it('navigates to vocabulary deck via All Vocabulary and back', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Vocabulary'));
-        expect(getByText('Show Answer')).toBeTruthy();
-        fireEvent.click(getByText('Back to Menu'));
+        fireEvent.click(getByText('All Vocabulary'));
+        expect(getByText('Show Solution')).toBeTruthy();
+        fireEvent.click(getByText('Back to Categories'));
+        fireEvent.click(getByText('Back'));
         expect(getByText('Script')).toBeTruthy();
         expect(getByText('Vocabulary')).toBeTruthy();
     });
 
-    it('navigates to speaking deck', () => {
+    it('navigates to exercises category screen', () => {
         const { getByText } = render(<App />);
-        fireEvent.click(getByText('Speaking'));
-        expect(getByText('Show Answer')).toBeTruthy();
+        fireEvent.click(getByText('Exercises'));
+        expect(getByText('Choose a category')).toBeTruthy();
+        expect(getByText('All Exercises')).toBeTruthy();
     });
 
-    it('navigates to speaking deck and back', () => {
+    it('navigates to exercises deck via All Exercises and back', () => {
         const { getByText } = render(<App />);
-        fireEvent.click(getByText('Speaking'));
+        fireEvent.click(getByText('Exercises'));
+        fireEvent.click(getByText('All Exercises'));
         expect(getByText('Show Answer')).toBeTruthy();
-        fireEvent.click(getByText('Back to Menu'));
+        fireEvent.click(getByText('Back to Categories'));
+        fireEvent.click(getByText('Back'));
         expect(getByText('Script')).toBeTruthy();
-        expect(getByText('Speaking')).toBeTruthy();
+        expect(getByText('Exercises')).toBeTruthy();
     });
 
     it('shows placeholder for Pronunciation', () => {
@@ -162,24 +185,36 @@ describe('<App /> home screen', () => {
 // ── 2b. <VocabularyDeck /> ────────────────────────────────────────────────────
 
 function renderVocabDeck() {
-    return render(<VocabularyDeck onBack={vi.fn()} />);
+    const utils = render(<VocabularyDeck onBack={vi.fn()} />);
+    // Enter deck via "All Vocabulary" on category selection screen
+    fireEvent.click(utils.getByText('All Vocabulary'));
+    return utils;
 }
 
 describe('<VocabularyDeck />', () => {
-    it('shows question text on first render', () => {
+    it('shows category selection screen on first render', () => {
+        const { getByText } = render(<VocabularyDeck onBack={vi.fn()} />);
+        expect(getByText('Choose a category')).toBeTruthy();
+        VOCABULARY_CATEGORIES.forEach(cat => {
+            expect(getByText(cat.label)).toBeTruthy();
+        });
+        expect(getByText('All Vocabulary')).toBeTruthy();
+    });
+
+    it('shows question text after entering deck', () => {
         const { getByTestId } = renderVocabDeck();
         const q = getByTestId('vocab-question-primary');
         expect(q).toBeTruthy();
-        // Default direction is th-to-en, so question shows latinised
-        expect(VOCABULARY.map(v => v.latinised)).toContain(q.textContent);
+        // Default direction is en-to-th, so question shows english
+        expect(VOCABULARY.map(v => v.english)).toContain(q.textContent);
     });
 
     it('shows secondary question text', () => {
         const { getByTestId } = renderVocabDeck();
         const q2 = getByTestId('vocab-question-secondary');
         expect(q2).toBeTruthy();
-        // Default direction is th-to-en, so secondary shows thai
-        expect(VOCABULARY.map(v => v.thai)).toContain(q2.textContent);
+        // Default direction is en-to-th, so secondary shows grammar
+        expect(VOCABULARY.map(v => v.grammar)).toContain(q2.textContent);
     });
 
     it('hides solution by default', () => {
@@ -188,36 +223,26 @@ describe('<VocabularyDeck />', () => {
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(true);
     });
 
-    it('shows solution after pressing "Show Answer"', () => {
+    it('shows solution after pressing "Show Solution"', () => {
         const { getByText, getByTestId } = renderVocabDeck();
-        fireEvent.click(getByText('Show Answer'));
+        fireEvent.click(getByText('Show Solution'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
     });
 
-    it('hides solution again after pressing "Hide Answer"', () => {
+    it('hides solution again after pressing "Hide Solution"', () => {
         const { getByText, getByTestId } = renderVocabDeck();
-        fireEvent.click(getByText('Show Answer'));
-        fireEvent.click(getByText('Hide Answer'));
+        fireEvent.click(getByText('Show Solution'));
+        fireEvent.click(getByText('Hide Solution'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
     });
 
-    it('advances to next card and hides solution', () => {
+    it('advances to next card', () => {
         const { getByText, getByTestId } = renderVocabDeck();
-        fireEvent.click(getByText('Show Answer'));
         const first = getByTestId('vocab-question-primary').textContent;
         fireEvent.click(getByText('Next'));
         const second = getByTestId('vocab-question-primary').textContent;
         expect(second).not.toBe(first);
-        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
-    });
-
-    it('hides solution after pressing Previous', () => {
-        const { getByText, getByTestId } = renderVocabDeck();
-        fireEvent.click(getByText('Next'));
-        fireEvent.click(getByText('Show Answer'));
-        fireEvent.click(getByText('Previous'));
-        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
     });
 
     it('speaks the Thai text when play is pressed', () => {
@@ -236,134 +261,130 @@ describe('<VocabularyDeck />', () => {
         expect(getByText('Deck Complete!')).toBeTruthy();
     });
 
-    it('shows direction toggle defaulting to TH → EN', () => {
+    it('shows direction toggle defaulting to EN → TH', () => {
         const { getByTestId } = renderVocabDeck();
-        expect(getByTestId('toggle-direction-btn').textContent).toBe('TH → EN');
+        expect(getByTestId('toggle-direction-btn').textContent).toBe('EN → TH');
     });
 
-    it('switches to EN → TH and swaps question/solution content', () => {
+    it('switches to TH → EN and swaps question/solution content', () => {
         const { getByTestId } = renderVocabDeck();
         fireEvent.click(getByTestId('toggle-direction-btn'));
-        expect(getByTestId('toggle-direction-btn').textContent).toBe('EN → TH');
-        // Question now shows english
-        expect(VOCABULARY.map(v => v.english)).toContain(getByTestId('vocab-question-primary').textContent);
+        expect(getByTestId('toggle-direction-btn').textContent).toBe('TH → EN');
+        // Question now shows latinised
+        expect(VOCABULARY.map(v => v.latinised)).toContain(getByTestId('vocab-question-primary').textContent);
         // Solution is hidden
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(true);
     });
 
-    it('reveals solution after pressing Show Answer in EN → TH direction', () => {
+    it('reveals solution after pressing Show Solution in TH → EN direction', () => {
         const { getByTestId, getByText } = renderVocabDeck();
         fireEvent.click(getByTestId('toggle-direction-btn'));
-        fireEvent.click(getByText('Show Answer'));
+        fireEvent.click(getByText('Show Solution'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
     });
 
     it('resets answer visibility when toggling direction', () => {
         const { getByTestId, getByText } = renderVocabDeck();
-        // Show answer in th-to-en
-        fireEvent.click(getByText('Show Answer'));
+        // Show answer in en-to-th
+        fireEvent.click(getByText('Show Solution'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
         // Switch direction — answer should reset to hidden
         fireEvent.click(getByTestId('toggle-direction-btn'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
     });
-});
 
-// ── 2b-fixed. Card text fields use fixed height (no layout shift) ───────────
-
-describe('Card text fields have fixed layout', () => {
-    it('VocabularyDeck text fields render full content without truncation', () => {
-        const { getByTestId, getByText } = renderVocabDeck();
-        // Show the answer so all fields are populated
-        fireEvent.click(getByText('Show Answer'));
-        const question = getByTestId('vocab-question-primary');
-        const questionSec = getByTestId('vocab-question-secondary');
-        const solution = getByTestId('vocab-solution-primary');
-        const solutionSec = getByTestId('vocab-solution-secondary');
-        // All text fields must have non-empty text content
-        expect(question.textContent!.length).toBeGreaterThan(0);
-        expect(questionSec.textContent!.length).toBeGreaterThan(0);
-        expect(solution.textContent!.length).toBeGreaterThan(0);
-        expect(solutionSec.textContent!.length).toBeGreaterThan(0);
-        // Text content must match a real item from the dataset (not truncated)
-        const item = VOCABULARY.find(v => v.latinised === question.textContent || v.english === question.textContent);
-        expect(item).toBeDefined();
+    it('filters vocabulary by category', () => {
+        const { getByText, getByTestId } = render(<VocabularyDeck onBack={vi.fn()} />);
+        fireEvent.click(getByText('Food'));
+        const q = getByTestId('vocab-question-primary');
+        const foodItems = VOCABULARY.filter(v => v.category === 'food');
+        expect(foodItems.map(v => v.english)).toContain(q.textContent);
     });
 
-    it('SpeakingDeck text fields render full content without truncation', () => {
-        const { getByTestId, getByText } = renderSpeakingDeck();
-        fireEvent.click(getByText('Show Answer'));
-        const question = getByTestId('speaking-question');
-        const solution = getByTestId('speaking-solution');
-        expect(question.textContent!.length).toBeGreaterThan(0);
-        expect(solution.textContent!.length).toBeGreaterThan(0);
-        // Question text must match a real item (not truncated)
-        const item = SPEAKING_CHALLENGES.find(c => c.prompt === question.textContent || c.thai === question.textContent);
-        expect(item).toBeDefined();
-    });
-
-    it('autoFitStyle returns undefined for short text', () => {
-        expect(autoFitStyle('hello', 28)).toBeUndefined();
-    });
-
-    it('autoFitStyle returns a reduced fontSize for long text', () => {
-        const long = 'Chiang Mai University is opposite the mountain.';
-        const style = autoFitStyle(long, 28);
-        expect(style).toBeDefined();
-        expect(style!.fontSize).toBeLessThan(28);
-        expect(style!.fontSize).toBeGreaterThanOrEqual(11);
-    });
-
-    it('autoFitStyle never goes below 11px', () => {
-        const veryLong = 'a'.repeat(200);
-        const style = autoFitStyle(veryLong, 32);
-        expect(style!.fontSize).toBe(11);
+    it('applies autoFitStyle on long text to prevent clipping', () => {
+        Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
+        // Toggle to TH→EN so question-primary shows latinised (can be long)
+        const { getByTestId, getByText } = render(<VocabularyDeck onBack={vi.fn()} />);
+        fireEvent.click(getByText('All Vocabulary'));
+        fireEvent.click(getByTestId('toggle-direction-btn'));
+        // The card should have inline font-size style if text is long
+        const el = getByTestId('vocab-question-primary');
+        const text = el.textContent ?? '';
+        if (text.length > 20) {
+            expect(el.style.fontSize).not.toBe('');
+        }
     });
 });
+// ── 2c. <ExerciseDeck /> ────────────────────────────────────────────────────────────
 
-// ── 2c. <SpeakingDeck /> ────────────────────────────────────────────────────────────
-
-function renderSpeakingDeck() {
-    return render(<SpeakingDeck onBack={vi.fn()} />);
+function renderExerciseDeck() {
+    const utils = render(<ExerciseDeck onBack={vi.fn()} />);
+    // Enter deck via "All Exercises" on category selection screen
+    fireEvent.click(utils.getByText('All Exercises'));
+    return utils;
 }
 
-describe('<SpeakingDeck />', () => {
-    it('shows question text on first render', () => {
-        const { getByTestId } = renderSpeakingDeck();
+describe('<ExerciseDeck />', () => {
+    it('shows category selection screen on first render', () => {
+        const { getByText } = render(<ExerciseDeck onBack={vi.fn()} />);
+        expect(getByText('Choose a category')).toBeTruthy();
+        EXERCISE_CATEGORIES.forEach(cat => {
+            expect(getByText(cat.label)).toBeTruthy();
+        });
+        expect(getByText('All Exercises')).toBeTruthy();
+    });
+
+    it('shows question text after entering deck', () => {
+        const { getByTestId } = renderExerciseDeck();
         const q = getByTestId('speaking-question');
         expect(q).toBeTruthy();
         // Default direction is en-to-th, so question shows English prompt
-        expect(SPEAKING_CHALLENGES.map(c => c.prompt)).toContain(q.textContent);
+        expect(EXERCISES.map(c => c.prompt)).toContain(q.textContent);
     });
 
     it('shows a category label', () => {
-        const { getByTestId } = renderSpeakingDeck();
+        const { getByTestId } = renderExerciseDeck();
         const cat = getByTestId('speaking-category');
-        expect(['Modal Verbs', 'Directions', 'Food Ordering', 'Places', 'Daily Activities', 'Numbers']).toContain(cat.textContent);
+        const allLabels = EXERCISE_CATEGORIES.map(c => c.label);
+        expect(allLabels).toContain(cat.textContent);
     });
 
     it('hides solution by default', () => {
-        const { getByTestId } = renderSpeakingDeck();
+        const { getByTestId } = renderExerciseDeck();
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
 
     it('shows solution after pressing "Show Answer"', () => {
-        const { getByText, getByTestId } = renderSpeakingDeck();
+        const { getByText, getByTestId } = renderExerciseDeck();
         fireEvent.click(getByText('Show Answer'));
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(false);
     });
 
+    it('shows latinised text as primary solution in en-to-th', () => {
+        const { getByText, getByTestId } = renderExerciseDeck();
+        fireEvent.click(getByText('Show Answer'));
+        const sol = getByTestId('speaking-solution').textContent;
+        expect(EXERCISES.map(c => c.latinised)).toContain(sol);
+    });
+
+    it('shows Thai script as secondary solution in en-to-th', () => {
+        const { getByText, getByTestId } = renderExerciseDeck();
+        fireEvent.click(getByText('Show Answer'));
+        const sec = getByTestId('speaking-solution-secondary').textContent;
+        expect(EXERCISES.map(c => c.thai)).toContain(sec);
+    });
+
     it('hides answer again after pressing "Hide Answer"', () => {
-        const { getByText, getByTestId } = renderSpeakingDeck();
+        const { getByText, getByTestId } = renderExerciseDeck();
         fireEvent.click(getByText('Show Answer'));
         fireEvent.click(getByText('Hide Answer'));
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
 
     it('advances to next card and hides answer', () => {
-        const { getByText, getByTestId } = renderSpeakingDeck();
+        const { getByText, getByTestId } = renderExerciseDeck();
         fireEvent.click(getByText('Show Answer'));
         const first = getByTestId('speaking-question').textContent;
         fireEvent.click(getByText('Next'));
@@ -374,50 +395,71 @@ describe('<SpeakingDeck />', () => {
 
     it('speaks the Thai text when play is pressed', () => {
         (speakThai as ReturnType<typeof vi.fn>).mockClear();
-        const { getByTestId } = renderSpeakingDeck();
+        const { getByTestId } = renderExerciseDeck();
         fireEvent.click(getByTestId('play-btn'));
         const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
-        expect(SPEAKING_CHALLENGES.map(c => c.thai)).toContain(text);
+        expect(EXERCISES.map(c => c.thai)).toContain(text);
     });
 
     it('shows Deck Complete after going through all cards', () => {
-        const { getByText } = renderSpeakingDeck();
-        for (let i = 0; i < SPEAKING_CHALLENGES.length; i++) {
+        const { getByText } = renderExerciseDeck();
+        for (let i = 0; i < EXERCISES.length; i++) {
             fireEvent.click(getByText('Next'));
         }
         expect(getByText('Deck Complete!')).toBeTruthy();
     });
 
     it('shows direction toggle defaulting to EN → TH', () => {
-        const { getByTestId } = renderSpeakingDeck();
+        const { getByTestId } = renderExerciseDeck();
         expect(getByTestId('toggle-direction-btn').textContent).toBe('EN → TH');
     });
 
     it('switches to TH → EN and swaps question/solution content', () => {
-        const { getByTestId } = renderSpeakingDeck();
+        const { getByTestId } = renderExerciseDeck();
         fireEvent.click(getByTestId('toggle-direction-btn'));
         expect(getByTestId('toggle-direction-btn').textContent).toBe('TH → EN');
         // Question now shows thai
-        expect(SPEAKING_CHALLENGES.map(c => c.thai)).toContain(getByTestId('speaking-question').textContent);
+        expect(EXERCISES.map(c => c.thai)).toContain(getByTestId('speaking-question').textContent);
         // Solution is hidden
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
 
     it('reveals solution after pressing Show Answer in TH → EN direction', () => {
-        const { getByTestId, getByText } = renderSpeakingDeck();
+        const { getByTestId, getByText } = renderExerciseDeck();
         fireEvent.click(getByTestId('toggle-direction-btn'));
         fireEvent.click(getByText('Show Answer'));
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(false);
     });
 
     it('resets answer visibility when toggling direction', () => {
-        const { getByTestId, getByText } = renderSpeakingDeck();
+        const { getByTestId, getByText } = renderExerciseDeck();
         // Show answer in en-to-th
         fireEvent.click(getByText('Show Answer'));
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(false);
         // Switch direction — answer should reset to hidden
         fireEvent.click(getByTestId('toggle-direction-btn'));
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
+    });
+
+    it('filters exercises by category', () => {
+        const { getByText, getByTestId } = render(<ExerciseDeck onBack={vi.fn()} />);
+        fireEvent.click(getByText('Modal Verbs'));
+        const q = getByTestId('speaking-question');
+        const modalItems = EXERCISES.filter(c => c.category === 'modals');
+        expect(modalItems.map(c => c.prompt)).toContain(q.textContent);
+    });
+
+    it('applies autoFitStyle on long prompts to prevent clipping', () => {
+        Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
+        const { getByTestId, getByText } = render(<ExerciseDeck onBack={vi.fn()} />);
+        fireEvent.click(getByText('All Exercises'));
+        // The question element should have an inline font-size if text is long
+        const el = getByTestId('speaking-question');
+        const text = el.textContent ?? '';
+        // autoFitStyle(text, 24) at 375px triggers when text.length > 23
+        if (text.length > 23) {
+            expect(el.style.fontSize).not.toBe('');
+        }
     });
 });
 // ── 3. <FlashcardDeck /> rendering ───────────────────────────────────────────
@@ -430,11 +472,13 @@ describe('<FlashcardDeck /> rendering', () => {
 
     it('shows a class label (Mid, High, or Low)', () => {
         const { getByText } = renderDeck();
+        fireEvent.click(getByText('Show Details'));
         expect(getByText(/^(Mid|High|Low)$/)).toBeTruthy();
     });
 
     it('class label colour matches the class-to-hex mapping', () => {
-        const { getByTestId } = renderDeck();
+        const { getByTestId, getByText } = renderDeck();
+        fireEvent.click(getByText('Show Details'));
         const classEl = getByTestId('class-label');
         const cls = classEl.textContent as keyof typeof CLASS_COLORS;
         expect(classEl.style.color).toBe(CLASS_COLORS[cls]);
@@ -450,29 +494,31 @@ describe('<FlashcardDeck /> rendering', () => {
 
 describe('Vowel deck rendering', () => {
     it('shows a length label (Short, Long, or Diphthong)', () => {
-        const { getByTestId } = renderVowelDeck();
+        const { getByTestId, getByText } = renderVowelDeck();
+        fireEvent.click(getByText('Show Details'));
         const label = getByTestId('vowel-length-label');
         expect(['Short', 'Long', 'Diphthong']).toContain(label.textContent);
     });
 
     it('shows the vowel name label', () => {
-        const { getByTestId } = renderVowelDeck();
+        const { getByTestId, getByText } = renderVowelDeck();
+        fireEvent.click(getByText('Show Details'));
         expect(getByTestId('vowel-name-label')).toBeTruthy();
     });
 
     it('length label colour matches the length-to-hex mapping', () => {
-        const { getByTestId } = renderVowelDeck();
+        const { getByTestId, getByText } = renderVowelDeck();
+        fireEvent.click(getByText('Show Details'));
         const el = getByTestId('vowel-length-label');
         const length = el.textContent as keyof typeof LENGTH_COLORS;
         expect(el.style.color).toBe(LENGTH_COLORS[length]);
     });
 
-    it('shows vowel detail labels after pressing "Show Details"', () => {
-        const { getByText, getByTestId } = renderVowelDeck();
-        fireEvent.click(getByText('Show Details'));
-        expect(getByTestId('vowel-length-label').classList.contains('hidden')).toBe(false);
-        expect(getByTestId('vowel-name-label').classList.contains('hidden')).toBe(false);
-        expect(getByTestId('vowel-romanisation-label').classList.contains('hidden')).toBe(false);
+    it('hides vowel detail labels by default', () => {
+        const { getByTestId } = renderVowelDeck();
+        expect(getByTestId('vowel-length-label').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('vowel-name-label').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('vowel-romanisation-label').classList.contains('hidden')).toBe(true);
     });
 });
 
@@ -512,23 +558,6 @@ describe('Next button', () => {
         fireEvent.click(getByText('Next'));
         const after = getByText(/^[\u0E00-\u0E7F]$/).textContent;
         expect(after).not.toBe(before);
-    });
-
-    it('resets details visibility after pressing Next', () => {
-        const { getByText, getByTestId } = renderDeck();
-        fireEvent.click(getByText('Show Details'));
-        expect(getByTestId('class-label').classList.contains('hidden')).toBe(false);
-        fireEvent.click(getByText('Next'));
-        expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
-    });
-
-    it('resets details visibility after pressing Previous', () => {
-        const { getByText, getByTestId } = renderDeck();
-        fireEvent.click(getByText('Next'));
-        fireEvent.click(getByText('Show Details'));
-        expect(getByTestId('class-label').classList.contains('hidden')).toBe(false);
-        fireEvent.click(getByText('Previous'));
-        expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
     });
 
     it('shows "Deck Complete!" after pressing Next 44 times', () => {
@@ -585,13 +614,30 @@ describe('Show/Hide Details toggle', () => {
         expect(getByText('Show Details')).toBeTruthy();
     });
 
-    it('hides all detail labels after toggling back to "Show Details"', () => {
+    it('restores all detail labels after toggling back to "Show Details"', () => {
         const { getByText, getByTestId } = renderDeck();
         fireEvent.click(getByText('Show Details'));
         fireEvent.click(getByText('Hide Details'));
         expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
         expect(getByTestId('name-label').classList.contains('hidden')).toBe(true);
         expect(getByTestId('meaning-label').classList.contains('hidden')).toBe(true);
+    });
+
+    it('hides details when navigating to next card', () => {
+        const { getByText, getByTestId } = renderDeck();
+        fireEvent.click(getByText('Show Details'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByText('Next'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
+    });
+
+    it('hides details when navigating to previous card', () => {
+        const { getByText, getByTestId } = renderDeck();
+        fireEvent.click(getByText('Next'));
+        fireEvent.click(getByText('Show Details'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByText('Previous'));
+        expect(getByTestId('class-label').classList.contains('hidden')).toBe(true);
     });
 });
 

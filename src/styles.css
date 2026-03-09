@@ -207,24 +207,24 @@ body {
 }
 
 .vocab-solution-primary {
+  font-size: clamp(22px, 5vw, 32px);
+  font-weight: bold;
+  line-height: 40px;
+  height: 40px;
+  overflow: hidden;
+  text-align: center;
+  color: #1a237e;
+  margin-bottom: 6px;
+}
+
+.vocab-solution-secondary {
   font-size: 16px;
   font-weight: 500;
   line-height: 22px;
   height: 22px;
   overflow: hidden;
   text-align: center;
-  color: #1a237e;
-  margin-bottom: 4px;
-}
-
-.vocab-solution-secondary {
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 18px;
-  height: 18px;
-  overflow: hidden;
-  text-align: center;
-  color: #888888;
+  color: #555555;
   font-style: italic;
 }
 
@@ -316,12 +316,16 @@ body {
   cursor: default;
 }
 
-.back-button {
-  background-color: #455a64;
+.complete-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
-.complete-text ~ .back-button {
-  margin-top: 8px;
+.back-button {
+  margin-top: 2px;
+  background-color: #455a64;
 }
 
 .toggle-button {
@@ -426,8 +430,22 @@ body {
 }
 
 .menu-button {
-  width: 220px;
-  margin-bottom: 8px;
+  width: clamp(220px, 60vw, 320px);
+  margin-bottom: 10px;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+  width: clamp(220px, 60vw, 320px);
+}
+
+.category-button {
+  width: 100%;
+  font-size: 14px;
+  padding: 10px 4px;
 }
 
 /* ── Small-height screens (e.g. phones in landscape, short devices) ── */

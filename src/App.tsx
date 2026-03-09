@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { Consonant, CONSONANTS } from './consonants';
 import { TonalRule, TONAL_RULES } from './tonalRules';
 import { Vowel, VOWELS } from './vowels';
-import { VocabItem, VOCABULARY } from './vocabulary';
-import { SpeakingChallenge, SPEAKING_CHALLENGES } from './speakingChallenges';
-import { shuffleArray, autoFitStyle } from './utils';
+import { VocabItem, VocabularyCategory, VOCABULARY, VOCABULARY_CATEGORIES } from './vocabulary';
+import { Exercise, ExerciseCategory, EXERCISES, EXERCISE_CATEGORIES } from './speakingChallenges';
+import { autoFitStyle, shuffleArray } from './utils';
 import { speakThai } from './speech';
 
 // ─── Shared type ─────────────────────────────────────────────────────────────
@@ -169,25 +169,17 @@ export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
     function handleRestart() {
         setDeck(shuffleArray(data));
         setCurrentIndex(0);
+        setShowDetails(false);
     }
 
     function handleShuffle() {
         setDeck(shuffleArray(data));
         setCurrentIndex(0);
+        setShowDetails(false);
     }
 
     function handleBackToStart() {
         setCurrentIndex(0);
-        setShowDetails(false);
-    }
-
-    function handleNext() {
-        setCurrentIndex(i => i + 1);
-        setShowDetails(false);
-    }
-
-    function handlePrev() {
-        setCurrentIndex(i => i - 1);
         setShowDetails(false);
     }
 
@@ -209,12 +201,14 @@ export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
             {isDeckComplete ? (
                 <div className="centred">
                     <div className="complete-text">Deck Complete!</div>
-                    <button className="button" onClick={handleRestart}>
-                        Start Again
-                    </button>
-                    <button className="button back-button" onClick={onBack}>
-                        Back to Menu
-                    </button>
+                    <div className="complete-buttons">
+                        <button className="button" onClick={handleRestart}>
+                            Start Again
+                        </button>
+                        <button className="button back-button" onClick={onBack}>
+                            Back to Menu
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="centred">
@@ -238,13 +232,13 @@ export function FlashcardDeck({ data, onBack }: FlashcardDeckProps) {
                             data-testid="prev-btn"
                             className="button"
                             disabled={currentIndex === 0}
-                            onClick={handlePrev}
+                            onClick={() => { setCurrentIndex(i => i - 1); setShowDetails(false); }}
                         >
                             Previous
                         </button>
                         <button
                             className="button"
-                            onClick={handleNext}
+                            onClick={() => { setCurrentIndex(i => i + 1); setShowDetails(false); }}
                         >
                             Next
                         </button>
@@ -298,7 +292,7 @@ function VocabCard({ item, showAnswer, direction }: VocabCardProps) {
             <div
                 data-testid="vocab-question-primary"
                 className="vocab-question-primary"
-                style={autoFitStyle(questionLine1, 32)}
+                style={autoFitStyle(questionLine1, 28)}
             >
                 {questionLine1}
             </div>
@@ -312,14 +306,14 @@ function VocabCard({ item, showAnswer, direction }: VocabCardProps) {
             <div
                 data-testid="vocab-solution-primary"
                 className={`vocab-solution-primary ${!showAnswer ? 'hidden' : ''}`}
-                style={autoFitStyle(solutionLine1, 16)}
+                style={autoFitStyle(solutionLine1, 28)}
             >
                 {solutionLine1}
             </div>
             <div
                 data-testid="vocab-solution-secondary"
                 className={`vocab-solution-secondary ${!showAnswer ? 'hidden' : ''}`}
-                style={autoFitStyle(solutionLine2, 13)}
+                style={autoFitStyle(solutionLine2, 16)}
             >
                 {solutionLine2}
             </div>
@@ -330,37 +324,34 @@ function VocabCard({ item, showAnswer, direction }: VocabCardProps) {
 // ─── VocabularyDeck component ────────────────────────────────────────────────
 
 export function VocabularyDeck({ onBack }: { onBack: () => void }) {
-    const [deck, setDeck] = useState<VocabItem[]>(() => shuffleArray(VOCABULARY));
+    const [selectedCategory, setSelectedCategory] = useState<VocabularyCategory | null>(null);
+    const [deck, setDeck] = useState<VocabItem[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showAnswer, setShowAnswer] = useState(false);
-    const [direction, setDirection] = useState<QuizDirection>('th-to-en');
+    const [direction, setDirection] = useState<QuizDirection>('en-to-th');
 
-    const isDeckComplete = currentIndex >= deck.length;
+    const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 
-    function handleRestart() {
-        setDeck(shuffleArray(VOCABULARY));
+    function startDeck(cat: VocabularyCategory | null) {
+        const items = cat
+            ? VOCABULARY.filter(v => v.category === cat)
+            : VOCABULARY;
+        setSelectedCategory(cat);
+        setDeck(shuffleArray(items));
         setCurrentIndex(0);
         setShowAnswer(false);
     }
 
+    function handleRestart() {
+        startDeck(selectedCategory);
+    }
+
     function handleShuffle() {
-        setDeck(shuffleArray(VOCABULARY));
-        setCurrentIndex(0);
-        setShowAnswer(false);
+        startDeck(selectedCategory);
     }
 
     function handleBackToStart() {
         setCurrentIndex(0);
-        setShowAnswer(false);
-    }
-
-    function handleNext() {
-        setCurrentIndex(i => i + 1);
-        setShowAnswer(false);
-    }
-
-    function handlePrev() {
-        setCurrentIndex(i => i - 1);
         setShowAnswer(false);
     }
 
@@ -373,17 +364,61 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
         setShowAnswer(false);
     }
 
+    function handleBackToCategories() {
+        setSelectedCategory(null);
+        setDeck([]);
+        setCurrentIndex(0);
+        setShowAnswer(false);
+    }
+
+    // ── Category selection screen ──
+    if (deck.length === 0) {
+        return (
+            <div className="container">
+                <div className="centred">
+                    <div className="menu-title">Vocabulary</div>
+                    <div className="menu-subtitle">Choose a category</div>
+                    <div className="category-grid">
+                        {VOCABULARY_CATEGORIES.map(cat => (
+                            <button
+                                key={cat.id}
+                                className="button category-button"
+                                onClick={() => startDeck(cat.id)}
+                            >
+                                {cat.label}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        className="button menu-button"
+                        onClick={() => startDeck(null)}
+                    >
+                        All Vocabulary
+                    </button>
+                    <button className="button menu-button back-button" onClick={onBack}>
+                        Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="container">
             {isDeckComplete ? (
                 <div className="centred">
                     <div className="complete-text">Deck Complete!</div>
-                    <button className="button" onClick={handleRestart}>
-                        Start Again
-                    </button>
-                    <button className="button back-button" onClick={onBack}>
-                        Back to Menu
-                    </button>
+                    <div className="complete-buttons">
+                        <button className="button" onClick={handleRestart}>
+                            Start Again
+                        </button>
+                        <button className="button" onClick={handleBackToCategories}>
+                            Choose Category
+                        </button>
+                        <button className="button back-button" onClick={onBack}>
+                            Back to Menu
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="centred">
@@ -392,7 +427,7 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
                         className="direction-toggle"
                         onClick={handleToggleDirection}
                     >
-                        {direction === 'th-to-en' ? 'TH → EN' : 'EN → TH'}
+                        {direction === 'en-to-th' ? 'EN → TH' : 'TH → EN'}
                     </button>
                     <VocabCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />
                     <button
@@ -407,20 +442,20 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
                         className="toggle-button"
                         onClick={() => setShowAnswer(v => !v)}
                     >
-                        {showAnswer ? 'Hide Answer' : 'Show Answer'}
+                        {showAnswer ? 'Hide Solution' : 'Show Solution'}
                     </button>
                     <div className="button-row">
                         <button
                             data-testid="prev-btn"
                             className="button"
                             disabled={currentIndex === 0}
-                            onClick={handlePrev}
+                            onClick={() => setCurrentIndex(i => i - 1)}
                         >
                             Previous
                         </button>
                         <button
                             className="button"
-                            onClick={handleNext}
+                            onClick={() => setCurrentIndex(i => i + 1)}
                         >
                             Next
                         </button>
@@ -444,9 +479,9 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
                     </div>
                     <button
                         className="util-button util-button-back"
-                        onClick={onBack}
+                        onClick={handleBackToCategories}
                     >
-                        Back to Menu
+                        Back to Categories
                     </button>
                 </div>
             )}
@@ -456,20 +491,14 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
 
 // ─── Speaking card ────────────────────────────────────────────────────────────
 
-interface SpeakingCardProps {
-    item: SpeakingChallenge;
+interface ExerciseCardProps {
+    item: Exercise;
     showAnswer: boolean;
     direction: QuizDirection;
 }
 
-function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
-    const categoryLabel =
-        item.category === 'food-ordering' ? 'Food Ordering'
-        : item.category === 'modals' ? 'Modal Verbs'
-        : item.category === 'directions' ? 'Directions'
-        : item.category === 'places' ? 'Places'
-        : item.category === 'daily-activities' ? 'Daily Activities'
-        : 'Numbers';
+function ExerciseCard({ item, showAnswer, direction }: ExerciseCardProps) {
+    const categoryLabel = EXERCISE_CATEGORIES.find(c => c.id === item.category)?.label ?? item.category;
 
     const enToTh = direction === 'en-to-th';
     const questionText = enToTh ? item.prompt : item.thai;
@@ -485,7 +514,7 @@ function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
             <div
                 data-testid="speaking-question"
                 className="speaking-question"
-                style={autoFitStyle(questionText, 28)}
+                style={autoFitStyle(questionText, 24)}
             >
                 {questionText}
             </div>
@@ -501,7 +530,7 @@ function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
             <div
                 data-testid="speaking-solution"
                 className={`speaking-solution ${!showAnswer ? 'hidden' : ''}`}
-                style={autoFitStyle(solutionLine1, 32)}
+                style={autoFitStyle(solutionLine1, 28)}
             >
                 {solutionLine1}
             </div>
@@ -518,26 +547,33 @@ function SpeakingCard({ item, showAnswer, direction }: SpeakingCardProps) {
     );
 }
 
-// ─── SpeakingDeck component ──────────────────────────────────────────────────
+// ─── ExerciseDeck component ──────────────────────────────────────────────────
 
-export function SpeakingDeck({ onBack }: { onBack: () => void }) {
-    const [deck, setDeck] = useState<SpeakingChallenge[]>(() => shuffleArray(SPEAKING_CHALLENGES));
+export function ExerciseDeck({ onBack }: { onBack: () => void }) {
+    const [selectedCategory, setSelectedCategory] = useState<ExerciseCategory | null>(null);
+    const [deck, setDeck] = useState<Exercise[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showAnswer, setShowAnswer] = useState(false);
     const [direction, setDirection] = useState<QuizDirection>('en-to-th');
 
-    const isDeckComplete = currentIndex >= deck.length;
+    const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 
-    function handleRestart() {
-        setDeck(shuffleArray(SPEAKING_CHALLENGES));
+    function startDeck(cat: ExerciseCategory | null) {
+        const items = cat
+            ? EXERCISES.filter(c => c.category === cat)
+            : EXERCISES;
+        setSelectedCategory(cat);
+        setDeck(shuffleArray(items));
         setCurrentIndex(0);
         setShowAnswer(false);
     }
 
+    function handleRestart() {
+        startDeck(selectedCategory);
+    }
+
     function handleShuffle() {
-        setDeck(shuffleArray(SPEAKING_CHALLENGES));
-        setCurrentIndex(0);
-        setShowAnswer(false);
+        startDeck(selectedCategory);
     }
 
     function handleBackToStart() {
@@ -564,17 +600,61 @@ export function SpeakingDeck({ onBack }: { onBack: () => void }) {
         setShowAnswer(false);
     }
 
+    function handleBackToCategories() {
+        setSelectedCategory(null);
+        setDeck([]);
+        setCurrentIndex(0);
+        setShowAnswer(false);
+    }
+
+    // ── Category selection screen ──
+    if (deck.length === 0) {
+        return (
+            <div className="container">
+                <div className="centred">
+                    <div className="menu-title">Exercises</div>
+                    <div className="menu-subtitle">Choose a category</div>
+                    <div className="category-grid">
+                        {EXERCISE_CATEGORIES.map(cat => (
+                            <button
+                                key={cat.id}
+                                className="button category-button"
+                                onClick={() => startDeck(cat.id)}
+                            >
+                                {cat.label}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        className="button menu-button"
+                        onClick={() => startDeck(null)}
+                    >
+                        All Exercises
+                    </button>
+                    <button className="button menu-button back-button" onClick={onBack}>
+                        Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="container">
             {isDeckComplete ? (
                 <div className="centred">
                     <div className="complete-text">Deck Complete!</div>
-                    <button className="button" onClick={handleRestart}>
-                        Start Again
-                    </button>
-                    <button className="button back-button" onClick={onBack}>
-                        Back to Menu
-                    </button>
+                    <div className="complete-buttons">
+                        <button className="button" onClick={handleRestart}>
+                            Start Again
+                        </button>
+                        <button className="button" onClick={handleBackToCategories}>
+                            Choose Category
+                        </button>
+                        <button className="button back-button" onClick={onBack}>
+                            Back to Menu
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className="centred">
@@ -585,7 +665,7 @@ export function SpeakingDeck({ onBack }: { onBack: () => void }) {
                     >
                         {direction === 'en-to-th' ? 'EN → TH' : 'TH → EN'}
                     </button>
-                    <SpeakingCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />
+                    <ExerciseCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />
                     <button
                         data-testid="play-btn"
                         className="play-button"
@@ -635,9 +715,9 @@ export function SpeakingDeck({ onBack }: { onBack: () => void }) {
                     </div>
                     <button
                         className="util-button util-button-back"
-                        onClick={onBack}
+                        onClick={handleBackToCategories}
                     >
-                        Back to Menu
+                        Back to Categories
                     </button>
                 </div>
             )}
@@ -727,7 +807,7 @@ export default function App() {
     }
 
     if (mode === 'SPEAKING') {
-        return <SpeakingDeck onBack={() => setMode('HOME')} />;
+        return <ExerciseDeck onBack={() => setMode('HOME')} />;
     }
 
     if (mode === 'PRONUNCIATION') {
@@ -755,7 +835,7 @@ export default function App() {
                     className="button menu-button"
                     onClick={() => setMode('SPEAKING')}
                 >
-                    Speaking
+                    Exercises
                 </button>
                 <button
                     className="button menu-button"

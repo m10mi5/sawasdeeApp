@@ -57,7 +57,7 @@ thaiscript/
     ├── vowels.ts       # VOWELS array + Vowel interface
     ├── vocabulary.ts   # VOCABULARY array + VocabItem interface
     ├── speakingChallenges.ts  # SPEAKING_CHALLENGES array + SpeakingChallenge interface
-    └── utils.ts        # shuffleArray<T>(), autoFitStyle() pure functions
+    └── utils.ts        # shuffleArray<T>() pure function
 ```
 
 ---
@@ -178,26 +178,51 @@ export interface Vowel {
 
 ## Data — `vocabulary.ts`
 
+### Type
+
+```ts
+export type VocabularyCategory = 'basics' | 'places' | 'food' | 'numbers' | 'shopping' | 'daily-life';
+
+export const VOCABULARY_CATEGORIES: { id: VocabularyCategory; label: string }[] = [
+    { id: 'basics', label: 'Basics' },
+    { id: 'places', label: 'Places' },
+    { id: 'food', label: 'Food' },
+    { id: 'numbers', label: 'Numbers' },
+    { id: 'shopping', label: 'Shopping' },
+    { id: 'daily-life', label: 'Daily Life' },
+];
+```
+
 ### Interface
 
 ```ts
 export interface VocabItem {
   latinised: string;            // Romanised pronunciation, e.g. 'sà baai'
   thai: string;                 // Thai script, e.g. 'สบาย'
-  type: 'word' | 'expression';  // Single word or multi-word phrase
+  type: 'word' | 'expression';  // Word or expression/phrase
   english: string;              // English translation, e.g. 'well / comfortable'
-  grammar: string;              // Part of speech: noun, verb, adjective, pronoun, particle, adverb, phrase
+  grammar: string;              // Part of speech: noun, verb, adjective, pronoun, particle, adverb, phrase, etc.
+  category: VocabularyCategory; // Vocabulary category for deck filtering
 }
 ```
 
-### Content — 263 vocabulary items
+### Content — 264 vocabulary items
 
-Sourced from `book/vocabulary.csv`, extracted via OCR from "Speak Thai in 15 Days" textbook PDFs. Covers greeting, places, daily activities, numbers, shopping, clothing, food & drink, and common expressions.
+Sourced from `book/vocabulary.csv`, extracted via OCR from "Speak Thai in 15 Days" textbook PDFs. Covers greeting, places, daily activities, numbers, shopping, clothing, and food & drink. Includes both single words (type `'word'`) and expression/phrase entries (type `'expression'`).
+
+| Category | Count |
+|---|---|
+| daily-life | 74 |
+| food | 51 |
+| places | 44 |
+| shopping | 41 |
+| basics | 36 |
+| numbers | 18 |
 
 | Grammar | Count |
 |---|---|
 | noun | 114 |
-| phrase | 43 |
+| phrase | 44 |
 | verb | 35 |
 | adjective | 19 |
 | number | 18 |
@@ -232,27 +257,44 @@ Sourced from `book/exercises.csv`, extracted from exercise sections of the textb
 
 ## Data — `speakingChallenges.ts`
 
+### Type
+
+```ts
+export type ExerciseCategory = 'modals' | 'directions' | 'food-ordering' | 'places' | 'daily-activities' | 'numbers';
+
+export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
+    { id: 'modals', label: 'Modal Verbs' },
+    { id: 'directions', label: 'Directions' },
+    { id: 'food-ordering', label: 'Food Ordering' },
+    { id: 'places', label: 'Places' },
+    { id: 'daily-activities', label: 'Daily Activities' },
+    { id: 'numbers', label: 'Numbers' },
+];
+```
+
 ### Interface
 
 ```ts
-export interface SpeakingChallenge {
+export interface Exercise {
   prompt: string;                             // English prompt, e.g. 'I want to eat pad thai'
   thai: string;                               // Thai script answer, e.g. 'อยากกินผัดไทย'
   latinised: string;                          // Romanised answer, e.g. 'yàak gin phàt thai'
-  category: 'modals' | 'directions' | 'food-ordering' | 'places' | 'daily-activities' | 'numbers';
+  category: ExerciseCategory;                 // Exercise category for deck filtering
 }
 ```
 
-### Content — 89 speaking challenges
+### Content — 89 exercises
+
+Sentence-level translation exercises sourced from `book/exercises.csv` and original exercise entries. Vocabulary/expression entries have been moved back to `vocabulary.ts`.
 
 | Category | Count | Examples |
 |---|---|---|
 | modals | 15 | "I want to eat pad thai", "Can you speak Thai?", "I must go now" |
 | directions | 15 | "Where is the train station?", "Turn left at the market", "Is it far?" |
 | food-ordering | 15 | "I'd like fried rice, please", "Not too spicy", "Check, please" |
-| places | 15 | "Where is the bathroom?", "The restaurant is near the hotel.", "Go straight then turn left." |
-| daily-activities | 14 | "Where are you going?", "We go to work.", "I like to see movie." |
-| numbers | 15 | "How many baht is that one?", "Can you reduce the price?", "How old are you?" |
+| places | 15 | "Where is the nearest BTS station?", "The hotel is near the park" |
+| daily-activities | 14 | "Can you swim?", "I like going for walks" |
+| numbers | 15 | "How much is this?", "This one comes from Japan" |
 
 ---
 
@@ -264,12 +306,12 @@ export type FlashcardItem = Consonant | TonalRule | Vowel;
 export type QuizDirection = 'th-to-en' | 'en-to-th';
 ```
 
-`QuizDirection` controls which side of a vocabulary or speaking card is the "question" and which is the "answer":
+`QuizDirection` controls which side of a vocabulary or exercise card is the "question" and which is the "answer":
 
 | Direction | Question (visible) | Answer (hidden until revealed) |
 |---|---|---|
 | `'th-to-en'` | Thai / latinised | English |
-| `'en-to-th'` | English | Thai / latinised |
+| `'en-to-th'` | English | Latinised (primary) / Thai script (secondary) |
 
 Discriminant chain in `Card`:
 
@@ -279,7 +321,7 @@ Discriminant chain in `Card`:
 
 ---
 
-## Utilities — `utils.ts`
+## Shuffle Logic — `utils.ts`
 
 ```ts
 export function shuffleArray<T>(array: T[]): T[]
@@ -289,15 +331,6 @@ export function shuffleArray<T>(array: T[]): T[]
 - Operates on a **copy** of the input — the original array is never mutated.
 - Returns the shuffled copy.
 - Exported as a standalone pure function so it can be unit-tested in isolation.
-
-```ts
-export function autoFitStyle(text: string, basePx: number): React.CSSProperties | undefined
-```
-
-- Returns an inline style (`{ fontSize, lineHeight }`) when `text` is too long to fit a single line at `basePx` inside the 368 px usable card width.
-- Returns `undefined` for short text (CSS defaults apply).
-- Uses character-count heuristic with `CHAR_RATIO = 0.55` and `MIN_FONT = 11`.
-- Applied in `VocabCard` and `SpeakingCard` to every text field.
 
 ---
 
@@ -328,10 +361,10 @@ Three components live in `App.tsx`:
 | `PlaceholderScreen` | Generic "Coming soon" screen used by Pronunciation |
 | `FlashcardDeck` (named export) | Stateful deck player; receives a `data` array and an `onBack` callback |
 | `Card` | Stateless card renderer; dispatches between consonant, vowel, and rule layouts |
-| `VocabularyDeck` (named export) | Stateful vocabulary deck player; uses `VOCABULARY` data directly |
+| `VocabularyDeck` (named export) | Stateful vocabulary deck player; category selection screen → filtered/shuffled deck |
 | `VocabCard` | Stateless vocabulary card renderer |
-| `SpeakingDeck` (named export) | Stateful speaking challenge deck player; uses `SPEAKING_CHALLENGES` data directly |
-| `SpeakingCard` | Stateless speaking card renderer |
+| `ExerciseDeck` (named export) | Stateful exercise deck player; category selection screen → filtered/shuffled deck |
+| `ExerciseCard` | Stateless exercise card renderer |
 
 ### `App` — Home Screen
 
@@ -345,10 +378,10 @@ Three components live in `App.tsx`:
 
 | `mode` | Renders |
 |---|---|
-| `'HOME'` | Title ("Sawasdee App"), subtitle "Choose what to practice", four buttons: Script, Vocabulary, Speaking, Pronunciation |
+| `'HOME'` | Title ("Sawasdee App"), subtitle "Choose what to practice", four buttons: Script, Vocabulary, Exercises, Pronunciation |
 | `'SCRIPT'` | `<ScriptScreen onBack={() => setMode('HOME')} />` |
-| `'VOCABULARY'` | `<VocabularyDeck onBack={() => setMode('HOME')} />` |
-| `'SPEAKING'` | `<SpeakingDeck onBack={() => setMode('HOME')} />` |
+| `'VOCABULARY'` | `<VocabularyDeck onBack={() => setMode('HOME')} />` (shows category selection first) |
+| `'SPEAKING'` | `<ExerciseDeck onBack={() => setMode('HOME')} />` (shows category selection first) |
 | `'PRONUNCIATION'` | `<PlaceholderScreen title="Pronunciation" onBack={() => setMode('HOME')} />` |
 
 ### `ScriptScreen` — Deck Selector
@@ -376,7 +409,7 @@ Three components live in `App.tsx`:
 
 Renders the title, "Coming soon" subtitle, and a "Back" button. Used only by Pronunciation mode.
 
-### `SpeakingDeck`
+### `ExerciseDeck`
 
 **Props**: `{ onBack: () => void }`
 
@@ -384,7 +417,8 @@ Renders the title, "Coming soon" subtitle, and a "Back" button. Used only by Pro
 
 | Variable | Type | Description |
 |---|---|---|
-| `deck` | `SpeakingChallenge[]` | `shuffleArray(SPEAKING_CHALLENGES)` — reshuffled on mount and on restart/shuffle |
+| `selectedCategory` | `ExerciseCategory \| null` | Selected category filter; `null` = all exercises |
+| `deck` | `Exercise[]` | Shuffled subset — empty until a category (or "All") is selected |
 | `currentIndex` | `number` | Zero-based index of the card being shown |
 | `showAnswer` | `boolean` | Whether the answer side is visible (default `false`) |
 | `direction` | `QuizDirection` | Quiz direction: `'en-to-th'` (default) or `'th-to-en'` |
@@ -392,32 +426,46 @@ Renders the title, "Coming soon" subtitle, and a "Back" button. Used only by Pro
 **Derived**
 
 ```ts
-const isDeckComplete = currentIndex >= deck.length;
+const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 ```
 
+**Key functions**
+
+- `startDeck(cat)` — filters `EXERCISES` by `cat` (or takes all if `null`), shuffles, resets index/answer.
+- `handleBackToCategories()` — resets `selectedCategory`, clears `deck`, returns to category selection.
+
 **Screens**
+
+*Category selection screen* (shown when `deck.length === 0`):
+
+- Title: "Exercises", subtitle: "Choose a category"
+- `.category-grid` with 6 buttons (one per `EXERCISE_CATEGORIES` entry) — each calls `startDeck(cat.id)`
+- "All Exercises" button — calls `startDeck(null)`
+- "Back" button — calls `onBack`
 
 *Flashcard screen* (shown while `!isDeckComplete`):
 
 - **Direction toggle** — pill button reading "EN → TH" or "TH → EN"; toggles `direction` state and resets `showAnswer` to `false`; `data-testid="toggle-direction-btn"`
-- `<SpeakingCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />`
+- `<ExerciseCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />`
 - **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
 - **Show/Hide Answer** toggle — label reads "Hide Answer" when visible, "Show Answer" when hidden; `data-testid="toggle-answer-btn"`
 - **Previous / Next** row — Previous disabled at index 0; navigating resets `showAnswer` to `false`
 - **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0; both reset `showAnswer` to `false`
-- **Back to Menu** button — calls `onBack`
+- **Back to Categories** button — calls `handleBackToCategories()`
 
 *Deck Complete screen* (shown when `isDeckComplete`):
 
 - Text: "Deck Complete!"
-- "Start Again" button — reshuffles and resets index
-- "Back to Menu" button — calls `onBack`
+- `.complete-buttons` wrapper (flex column, gap 10px):
+  - "Start Again" button — reshuffles and resets index
+  - "Choose Category" button — returns to category selection
+  - "Back to Menu" button — calls `onBack`
 
-### `SpeakingCard`
+### `ExerciseCard`
 
-**Props**: `{ item: SpeakingChallenge; showAnswer: boolean; direction: QuizDirection }`
+**Props**: `{ item: Exercise; showAnswer: boolean; direction: QuizDirection }`
 
-Uses **role-based rendering**: content is assigned to question/solution slots based on `direction`, so the visual layout (CSS, position) is always the same regardless of direction. Secondary lines are conditionally rendered (not just hidden).
+Uses **role-based rendering**: content is assigned to question/solution slots based on `direction`, so the visual layout (CSS, position) is always the same regardless of direction. In EN→TH, the primary (big blue) solution shows the **latinised** pronunciation and the secondary line shows Thai script. Secondary lines are conditionally rendered (not just hidden).
 
 | Direction | Question | Question secondary | Solution | Solution secondary |
 |---|---|---|---|---|
@@ -432,7 +480,7 @@ Uses **role-based rendering**: content is assigned to question/solution slots ba
 | Solution | `.speaking-solution` | `font-size: clamp(22px, 5vw, 32px)`, bold #1a237e; fixed `height: 40px` | `speaking-solution` | `!showAnswer` |
 | Solution secondary | `.speaking-solution-secondary` | `font-size: 16px`, italic #555; fixed `height: 22px` | `speaking-solution-secondary` | `!showAnswer` (conditionally rendered only in EN→TH) |
 
-The speaking card uses CSS classes `.card .speaking-card`. Every row has a fixed `height` and `overflow: hidden`, so card dimensions are identical regardless of text length. The card uses `flex: 1` (inherited from `.card`) to fill available vertical space, same as all other card types.
+The exercise card uses CSS classes `.card .speaking-card`. Every row has a fixed `height` and `overflow: hidden`, so card dimensions are identical regardless of text length. The card uses `flex: 1` (inherited from `.card`) to fill available vertical space, same as all other card types. All text rows apply `autoFitStyle(text, basePx)` as an inline `style` to shrink the font when the text is too long for the card width, preventing clipping.
 
 ### `VocabularyDeck`
 
@@ -442,34 +490,49 @@ The speaking card uses CSS classes `.card .speaking-card`. Every row has a fixed
 
 | Variable | Type | Description |
 |---|---|---|
-| `deck` | `VocabItem[]` | `shuffleArray(VOCABULARY)` — reshuffled on mount and on restart/shuffle |
+| `selectedCategory` | `VocabularyCategory \| null` | Selected category filter; `null` = all vocabulary |
+| `deck` | `VocabItem[]` | Shuffled subset — empty until a category (or "All") is selected |
 | `currentIndex` | `number` | Zero-based index of the card being shown |
 | `showAnswer` | `boolean` | Whether the answer side is visible (default `false`) |
-| `direction` | `QuizDirection` | Quiz direction: `'th-to-en'` (default) or `'en-to-th'` |
+| `direction` | `QuizDirection` | Quiz direction: `'en-to-th'` (default) or `'th-to-en'` |
 
 **Derived**
 
 ```ts
-const isDeckComplete = currentIndex >= deck.length;
+const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 ```
+
+**Key functions**
+
+- `startDeck(cat)` — filters `VOCABULARY` by `cat` (or takes all if `null`), shuffles, resets index/answer.
+- `handleBackToCategories()` — resets `selectedCategory`, clears `deck`, returns to category selection.
 
 **Screens**
 
+*Category selection screen* (shown when `deck.length === 0`):
+
+- Title: "Vocabulary", subtitle: "Choose a category"
+- `.category-grid` with 6 buttons (one per `VOCABULARY_CATEGORIES` entry) — each calls `startDeck(cat.id)`
+- "All Vocabulary" button — calls `startDeck(null)`
+- "Back" button — calls `onBack`
+
 *Flashcard screen* (shown while `!isDeckComplete`):
 
-- **Direction toggle** — pill button reading "TH → EN" or "EN → TH"; toggles `direction` state and resets `showAnswer` to `false`; `data-testid="toggle-direction-btn"`
+- **Direction toggle** — pill button reading "EN → TH" or "TH → EN"; toggles `direction` state and resets `showAnswer` to `false`; `data-testid="toggle-direction-btn"`
 - `<VocabCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />`
 - **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
-- **Show/Hide solution** toggle — label reads "Hide Solution" / "Show Solution" regardless of direction; `data-testid="toggle-answer-btn"`
-- **Previous / Next** row — Previous disabled at index 0; navigating resets `showAnswer` to `false`
-- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0; both reset `showAnswer` to `false`
-- **Back to Menu** button — calls `onBack`
+- **Show/Hide Solution** toggle — label reads "Hide Solution" / "Show Solution"; `data-testid="toggle-answer-btn"`
+- **Previous / Next** row — Previous disabled at index 0
+- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0
+- **Back to Categories** button — calls `handleBackToCategories()`
 
 *Deck Complete screen* (shown when `isDeckComplete`):
 
 - Text: "Deck Complete!"
-- "Start Again" button — reshuffles and resets index
-- "Back to Menu" button — calls `onBack`
+- `.complete-buttons` wrapper (flex column, gap 10px):
+  - "Start Again" button — reshuffles and resets index
+  - "Choose Category" button — returns to category selection
+  - "Back to Menu" button — calls `onBack`
 
 ### `VocabCard`
 
@@ -486,10 +549,10 @@ Uses **role-based rendering**: content is assigned to question/solution slots ba
 |---|---|---|---|---|
 | Question primary | `.vocab-question-primary` | `font-size: clamp(22px, 5vw, 32px)`, bold #111; fixed `height: 40px` | `vocab-question-primary` | never |
 | Question secondary | `.vocab-question-secondary` | `font-size: 16px`, #555; fixed `height: 22px` | `vocab-question-secondary` | never |
-| Solution primary | `.vocab-solution-primary` | `font-size: 16px`, #1a237e; fixed `height: 22px` | `vocab-solution-primary` | `!showAnswer` |
-| Solution secondary | `.vocab-solution-secondary` | `font-size: 13px`, italic #888; fixed `height: 18px` | `vocab-solution-secondary` | `!showAnswer` |
+| Solution primary | `.vocab-solution-primary` | `font-size: clamp(22px, 5vw, 32px)`, bold #1a237e; fixed `height: 40px` | `vocab-solution-primary` | `!showAnswer` |
+| Solution secondary | `.vocab-solution-secondary` | `font-size: 16px`, italic #555; fixed `height: 22px` | `vocab-solution-secondary` | `!showAnswer` |
 
-The vocab card uses CSS classes `.card .vocab-card`. Every row has a fixed `height` and `overflow: hidden`, so card dimensions are identical regardless of text length. The card uses `flex: 1` (inherited from `.card`) to fill available vertical space, same as all other card types.
+The vocab card uses CSS classes `.card .vocab-card`. Every row has a fixed `height` and `overflow: hidden`, so card dimensions are identical regardless of text length. The card uses `flex: 1` (inherited from `.card`) to fill available vertical space, same as all other card types. All text rows apply `autoFitStyle(text, basePx)` as an inline `style` to shrink the font when the text is too long for the card width, preventing clipping.
 
 ### `FlashcardDeck` — Props
 
@@ -521,15 +584,16 @@ const isDeckComplete = currentIndex >= deck.length;
 - `<Card item={deck[currentIndex]} showDetails={showDetails} />`
 - **▶ Listen** button — calls `speakThai(text)` where `text` is `item.thaiName` for consonants, `item.symbol` for vowels, or `item.thaiWord` for tonal rules; `data-testid="play-btn"`
 - **Show/Hide Details** toggle — label reads "Hide Details" when visible, "Show Details" when hidden
-- **Previous / Next** row — Previous disabled at index 0; navigating resets `showDetails` to `false`
-- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0; Back to Start resets `showDetails` to `false`
+- **Previous / Next** row — Previous disabled at index 0
+- **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0
 - **Back to Menu** button — calls `onBack`
 
 *Deck Complete screen* (shown when `isDeckComplete`):
 
 - Text: "Deck Complete!"
-- "Start Again" button — reshuffles and resets index
-- "Back to Menu" button — calls `onBack`
+- `.complete-buttons` wrapper (flex column, gap 10px):
+  - "Start Again" button — reshuffles and resets index
+  - "Back to Menu" button — calls `onBack`
 
 ### `Card` — Consonant layout
 
@@ -605,10 +669,12 @@ The rule card uses CSS classes `card rule-card` where `rule-card` sets `height: 
 ### Key imports
 
 ```ts
-import App, { FlashcardDeck, VocabularyDeck, SpeakingDeck } from './App';
+import App, { FlashcardDeck, VocabularyDeck, ExerciseDeck } from './App';
+import { VOCABULARY, VOCABULARY_CATEGORIES } from './vocabulary';
+import { EXERCISES, EXERCISE_CATEGORIES } from './speakingChallenges';
 ```
 
-`FlashcardDeck`, `VocabularyDeck`, and `SpeakingDeck` are tested directly (bypassing the menu) via helpers:
+`FlashcardDeck`, `VocabularyDeck`, and `ExerciseDeck` are tested directly (bypassing the menu) via helpers:
 
 ```ts
 function renderDeck() {
@@ -618,10 +684,14 @@ function renderVowelDeck() {
   return render(<FlashcardDeck data={VOWELS} onBack={vi.fn()} />);
 }
 function renderVocabDeck() {
-  return render(<VocabularyDeck onBack={vi.fn()} />);
+  const result = render(<VocabularyDeck onBack={vi.fn()} />);
+  fireEvent.click(result.getByText('All Vocabulary'));  // enter deck from category screen
+  return result;
 }
-function renderSpeakingDeck() {
-  return render(<SpeakingDeck onBack={vi.fn()} />);
+function renderExerciseDeck() {
+  const result = render(<ExerciseDeck onBack={vi.fn()} />);
+  fireEvent.click(result.getByText('All Exercises'));  // enter deck from category screen
+  return result;
 }
 ```
 
@@ -635,68 +705,72 @@ function renderSpeakingDeck() {
 | Preserves all items | Every original item is present in the result |
 | Changes order | After N runs at least one result differs from the original order |
 
-#### 2. `<App />` home screen (13 tests)
+#### 1b. `autoFitStyle()` — logic unit tests (2 tests)
 
 | Test | Assertion |
 |---|---|
-| Shows all four practice buttons on first render | "Script", "Vocabulary", "Speaking", "Pronunciation" are visible |
+| Returns undefined for short text | `autoFitStyle('hello', 28)` returns `undefined` at 375px width |
+| Returns a smaller fontSize for long text | A 47-char prompt at 28px base returns a defined style with `fontSize < 28` |
+
+#### 2. `<App />` home screen (14 tests)
+
+| Test | Assertion |
+|---|---|
+| Shows all four practice buttons on first render | "Script", "Vocabulary", "Exercises", "Pronunciation" are visible |
 | Navigates to script deck menu | After clicking "Script", deck buttons are visible |
 | Navigates to consonant deck via Script | After Script → Practice Consonants, a Thai glyph is visible |
 | Navigates to tonal rules deck via Script | After Script → Practice Tone Rules, `/Class \+/` text is visible |
 | Navigates to vowels deck via Script | After Script → Practice Vowels, `vowel-length-label` is present |
 | Returns from script menu to home | After Script → Back, home buttons are visible |
 | Returns from deck to script menu | After Script → deck → Back to Menu, script deck buttons visible |
-| Shows vocabulary deck | After clicking "Vocabulary", "Show Answer" toggle is visible |
-| Navigates to vocabulary deck and back | After Vocabulary → Back to Menu, home buttons are visible |
-| Navigates to speaking deck | After clicking "Speaking", "Show Answer" toggle is visible |
-| Navigates to speaking deck and back | After Speaking → Back to Menu, home buttons are visible |
+| Navigates to vocabulary category screen | After clicking "Vocabulary", "Choose a category" and "All Vocabulary" are visible |
+| Navigates to vocabulary deck via All Vocabulary and back | After Vocabulary → All Vocabulary, "Show Solution" visible; Back to Categories → Back returns home |
+| Navigates to exercises category screen | After clicking "Exercises", "Choose a category" and "All Exercises" are visible |
+| Navigates to exercises deck via All Exercises and back | After Exercises → All Exercises, "Show Answer" visible; Back to Categories → Back returns home |
 | Shows placeholder for Pronunciation | After clicking "Pronunciation", "Coming soon" is visible |
 | Returns from placeholder to home | After Pronunciation → Back, home buttons are visible |
 
-#### 2b. `<VocabularyDeck />` (14 tests)
+#### 2b. `<VocabularyDeck />` (15 tests)
 
 | Test | Assertion |
 |---|---|
-| Shows question text | `vocab-question-primary` contains a value from `VOCABULARY` |
-| Shows secondary question text | `vocab-question-secondary` is present |
+| Shows category selection screen on first render | "Choose a category" and all 6 `VOCABULARY_CATEGORIES` labels visible |
+| Shows question text after entering deck | After "All Vocabulary", `.vocab-question-primary` contains a value from `VOCABULARY` |
+| Shows secondary question text | `.vocab-question-secondary` contains a value from `VOCABULARY` |
 | Hides solution by default | `vocab-solution-primary` and `vocab-solution-secondary` have CSS class `hidden` |
-| Shows solution after toggle | After "Show Answer", `vocab-solution-primary` loses `hidden` class |
-| Hides solution on re-toggle | After show then "Hide Answer", `vocab-solution-primary` regains `hidden` class |
-| Advances to next card and hides solution | After Show Answer + Next, question changes and solution is hidden again |
-| Hides solution after pressing Previous | After Next + Show Answer + Previous, solution is hidden |
+| Shows solution after toggle | After "Show Solution", `vocab-solution-primary` loses `hidden` class |
+| Hides solution on re-toggle | After show then "Hide Solution", `vocab-solution-primary` regains `hidden` class |
+| Advances to next card | After Next, `.vocab-question-primary` text changes |
 | Speaks Thai on play | `speakThai` called with a value from `VOCABULARY.map(v => v.thai)` |
 | Deck Complete after all cards | After clicking Next `VOCABULARY.length` times, "Deck Complete!" is visible |
-| Direction toggle defaults to TH → EN | `toggle-direction-btn` reads "TH → EN" on first render |
-| Switches to EN → TH and swaps content | After toggle, question/solution swap content |
-| Reveals solution in EN → TH | After toggle + "Show Answer", solution loses `hidden` class |
-| Resets answer on direction change | After showing answer then toggling direction, solution is hidden again |
-
-#### 2c. `<SpeakingDeck />` (12 tests)
-
-| Test | Assertion |
-|---|---|
-| Shows question text | `speaking-question` contains a value from `SPEAKING_CHALLENGES` |
-| Shows a category label | `speaking-category` contains one of "Modal Verbs", "Directions", "Food Ordering", "Places", "Daily Activities", "Numbers" |
-| Hides solution by default | `speaking-solution` has CSS class `hidden` |
-| Shows solution after toggle | After "Show Answer", `speaking-solution` loses `hidden` class |
-| Hides answer on re-toggle | After show then "Hide Answer", `speaking-solution` regains `hidden` class |
-| Advances to next card and hides answer | After Show Answer + Next, question changes and solution is hidden again |
-| Speaks Thai on play | `speakThai` called with a value from `SPEAKING_CHALLENGES.map(c => c.thai)` |
-| Deck Complete after all cards | After clicking Next `SPEAKING_CHALLENGES.length` times, "Deck Complete!" is visible |
 | Direction toggle defaults to EN → TH | `toggle-direction-btn` reads "EN → TH" on first render |
-| Switches to TH → EN and swaps content | After toggle, question shows thai, solution is hidden |
-| Reveals solution in TH → EN | After toggle + "Show Answer", `speaking-solution` loses `hidden` class |
-| Resets answer on direction change | After showing answer then toggling direction, solution is hidden again |
+| Switches to TH → EN | After toggle, thai/latinised visible as question, english hidden |
+| Reveals solution in TH → EN | After toggle + "Show Solution", solution loses `hidden` class |
+| Resets answer on direction change | After showing answer then toggling direction, answer side is hidden again |
+| Filters vocabulary by category | After clicking a category button, deck contains only items from that category |
+| Applies autoFitStyle on long text | At 375px viewport width with TH→EN direction, long text gets inline fontSize |
 
-#### 2-fixed. Card text fields have fixed layout (4 tests)
+#### 2c. `<ExerciseDeck />` (17 tests)
 
 | Test | Assertion |
 |---|---|
-| VocabularyDeck text fields render full content | All four text fields have non-empty content matching a real `VOCABULARY` item |
-| SpeakingDeck text fields render full content | Question and solution text match a real `SPEAKING_CHALLENGES` item |
-| autoFitStyle returns undefined for short text | Short text gets no inline style override |
-| autoFitStyle returns reduced fontSize for long text | Long text gets a fontSize < basePx and >= 11 |
-| autoFitStyle never goes below 11px | Very long text clamps at fontSize 11 |
+| Shows category selection screen on first render | "Choose a category" and all 6 `EXERCISE_CATEGORIES` labels visible |
+| Shows question text after entering deck | After "All Exercises", `speaking-question` contains a value from `EXERCISES` |
+| Shows a category label | `speaking-category` contains one of the labels from `EXERCISE_CATEGORIES` |
+| Hides solution by default | `speaking-solution` has CSS class `hidden` |
+| Shows answer after toggle | After "Show Answer", `speaking-solution` loses `hidden` class |
+| Shows latinised text as primary solution in en-to-th | After "Show Answer", `speaking-solution` contains a value from `EXERCISES.map(c => c.latinised)` |
+| Shows Thai script as secondary solution in en-to-th | After "Show Answer", `speaking-solution-secondary` contains a value from `EXERCISES.map(c => c.thai)` |
+| Hides answer on re-toggle | After show then "Hide Answer", `speaking-solution` regains `hidden` class |
+| Advances to next card and hides answer | After Show Answer + Next, question changes and answer is hidden again |
+| Speaks Thai on play | `speakThai` called with a value from `EXERCISES.map(c => c.thai)` |
+| Deck Complete after all cards | After clicking Next `EXERCISES.length` times, "Deck Complete!" is visible |
+| Direction toggle defaults to EN → TH | `toggle-direction-btn` reads "EN → TH" on first render |
+| Switches to TH → EN | After toggle, thai/latinised visible as question, prompt hidden |
+| Reveals solution in TH → EN | After toggle + "Show Answer", `speaking-solution` loses `hidden` class |
+| Resets answer on direction change | After showing answer then toggling direction, answer side is hidden again |
+| Filters exercises by category | After clicking a category button, deck contains only items from that category |
+| Applies autoFitStyle on long prompts | At 375px viewport width, long prompts get inline fontSize |
 
 #### 3. `<FlashcardDeck />` rendering (4 tests)
 
@@ -714,7 +788,7 @@ function renderSpeakingDeck() {
 | Shows a length label | `vowel-length-label` contains one of Short / Long / Diphthong |
 | Shows the vowel name label | `vowel-name-label` is present |
 | Length label colour correct | `style.color` matches the length-to-rgb mapping |
-| Shows vowel detail labels | After "Show Details", `vowel-length-label`, `vowel-name-label`, `vowel-romanisation-label` all lose CSS class `hidden` |
+| Hides vowel detail labels | After "Hide Details", `vowel-length-label`, `vowel-name-label`, `vowel-romanisation-label` all have CSS class `hidden` |
 
 #### 5. Play button (3 tests)
 
@@ -724,13 +798,11 @@ function renderSpeakingDeck() {
 | Speaks tonal rule thai word | `speakThai` called with a value from `TONAL_RULES.map(r => r.thaiWord)` |
 | Speaks vowel symbol | `speakThai` called with a value from `VOWELS.map(v => v.symbol)` |
 
-#### 6. Next button (4 tests)
+#### 6. Next button (2 tests)
 
 | Test | Assertion |
 |---|---|
 | Advances the card | After one click the displayed character changes |
-| Resets details after Next | After Show Details + Next, `class-label` gains `hidden` class |
-| Resets details after Previous | After Next + Show Details + Previous, `class-label` gains `hidden` class |
 | Reaches completion | After 44 clicks "Deck Complete!" is visible |
 
 #### 7. Previous button (2 tests)
@@ -744,10 +816,10 @@ function renderSpeakingDeck() {
 
 | Test | Assertion |
 |---|---|
-| Hidden by default | `class-label` has CSS class `hidden` on first render |
-| Shows all detail labels | After "Show Details", `class-label`, `name-label`, `meaning-label` all lose class `hidden` |
+| Visible by default | `class-label` does not have CSS class `hidden` on first render |
+| Hides all detail labels | After "Hide Details", `class-label`, `name-label`, `meaning-label` all have class `hidden` |
 | Button label flips | Reads "Show Details" while hidden, "Hide Details" while shown |
-| Hides on re-click | After show then hide, all three labels have class `hidden` again |
+| Restores on re-click | After hide then show, all three labels no longer have class `hidden` |
 
 #### 9. Back to Start button (3 tests)
 
@@ -839,4 +911,6 @@ npm run preview
 13. **Web Speech API TTS** — `speakThai()` wraps `SpeechSynthesisUtterance` with `lang = 'th'`; no audio asset files are needed. Thai voice availability depends on the user's OS/browser.
 14. **Vowel deck mirrors consonant card** — `Vowel` cards reuse the same CSS classes as consonant cards; `LENGTH_COLORS` maps Short/Long/Diphthong to the same blue/green/orange palette as CLASS_COLORS. The `symbol` field always includes ก as the base consonant so the vowel form is visible and immediately pronounceable by TTS.
 15. **GitHub Actions CI/CD** — every push to `main` runs typecheck + tests, then builds and deploys to GitHub Pages. No manual deployment step.
-16. **Fixed card text field layout** — card text rows (`.vocab-question-primary`, `.speaking-question`, etc.) use a fixed CSS `height` with `overflow: hidden`. Long text is auto-shrunk via the `autoFitStyle()` utility, which reduces font size (and line-height) based on character count so text always fits in a single line. Minimum font is 11 px. This keeps card structure stable — positions of all fields are fixed regardless of content length. This invariant is enforced by CI tests in the "Card text fields have fixed layout" test group.
+16. **Category selection pattern** — VocabularyDeck and ExerciseDeck both use the same category selection pattern: `selectedCategory` state starts `null`, `deck` starts empty, a category grid screen is shown first, `startDeck(cat)` filters the data array and shuffles it, and "Back to Categories" returns to the selection screen. This keeps both deck components structurally identical.
+17. **CSS consistency for selection screens** — All category selection screens and the home menu use the same CSS classes: `.category-grid` + `.category-button` (width: 100%) for the grid, and `.menu-button` for full-width action buttons. Both `.menu-button` and `.category-grid` use `width: clamp(220px, 60vw, 320px)` for responsive sizing that is proportionally narrower than cards (`calc(100vw - 32px)`, max 400px).
+18. **Deck Complete button wrapper** — All three deck types wrap their completion screen buttons in a `.complete-buttons` div (flex column, gap 10px) for consistent spacing.
