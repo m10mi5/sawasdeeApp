@@ -135,13 +135,13 @@ describe('<App /> home screen', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Vocabulary'));
         expect(getByText('Choose a category')).toBeTruthy();
-        expect(getByText('All Vocabulary')).toBeTruthy();
+        expect(getByText('All')).toBeTruthy();
     });
 
-    it('navigates to vocabulary deck via All Vocabulary and back', () => {
+    it('navigates to vocabulary deck via All and back', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Vocabulary'));
-        fireEvent.click(getByText('All Vocabulary'));
+        fireEvent.click(getByText('All'));
         expect(getByText('Show Solution')).toBeTruthy();
         fireEvent.click(getByText('Back to Categories'));
         fireEvent.click(getByText('Back'));
@@ -153,13 +153,13 @@ describe('<App /> home screen', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Exercises'));
         expect(getByText('Choose a category')).toBeTruthy();
-        expect(getByText('All Exercises')).toBeTruthy();
+        expect(getByText('All')).toBeTruthy();
     });
 
-    it('navigates to exercises deck via All Exercises and back', () => {
+    it('navigates to exercises deck via All and back', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Exercises'));
-        fireEvent.click(getByText('All Exercises'));
+        fireEvent.click(getByText('All'));
         expect(getByText('Show Answer')).toBeTruthy();
         fireEvent.click(getByText('Back to Categories'));
         fireEvent.click(getByText('Back'));
@@ -186,8 +186,8 @@ describe('<App /> home screen', () => {
 
 function renderVocabDeck() {
     const utils = render(<VocabularyDeck onBack={vi.fn()} />);
-    // Enter deck via "All Vocabulary" on category selection screen
-    fireEvent.click(utils.getByText('All Vocabulary'));
+    // Enter deck via "All" on category selection screen
+    fireEvent.click(utils.getByText('All'));
     return utils;
 }
 
@@ -198,7 +198,7 @@ describe('<VocabularyDeck />', () => {
         VOCABULARY_CATEGORIES.forEach(cat => {
             expect(getByText(cat.label)).toBeTruthy();
         });
-        expect(getByText('All Vocabulary')).toBeTruthy();
+        expect(getByText('All')).toBeTruthy();
     });
 
     it('shows question text after entering deck', () => {
@@ -295,6 +295,23 @@ describe('<VocabularyDeck />', () => {
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
     });
 
+    it('hides solution when navigating to next card', () => {
+        const { getByText, getByTestId } = renderVocabDeck();
+        fireEvent.click(getByText('Show Solution'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByText('Next'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+    });
+
+    it('hides solution when navigating to previous card', () => {
+        const { getByText, getByTestId } = renderVocabDeck();
+        fireEvent.click(getByText('Next'));
+        fireEvent.click(getByText('Show Solution'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByText('Previous'));
+        expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+    });
+
     it('filters vocabulary by category', () => {
         const { getByText, getByTestId } = render(<VocabularyDeck onBack={vi.fn()} />);
         fireEvent.click(getByText('Food'));
@@ -307,7 +324,7 @@ describe('<VocabularyDeck />', () => {
         Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
         // Toggle to TH→EN so question-primary shows latinised (can be long)
         const { getByTestId, getByText } = render(<VocabularyDeck onBack={vi.fn()} />);
-        fireEvent.click(getByText('All Vocabulary'));
+        fireEvent.click(getByText('All'));
         fireEvent.click(getByTestId('toggle-direction-btn'));
         // The card should have inline font-size style if text is long
         const el = getByTestId('vocab-question-primary');
@@ -321,8 +338,8 @@ describe('<VocabularyDeck />', () => {
 
 function renderExerciseDeck() {
     const utils = render(<ExerciseDeck onBack={vi.fn()} />);
-    // Enter deck via "All Exercises" on category selection screen
-    fireEvent.click(utils.getByText('All Exercises'));
+    // Enter deck via "All" on category selection screen
+    fireEvent.click(utils.getByText('All'));
     return utils;
 }
 
@@ -333,7 +350,7 @@ describe('<ExerciseDeck />', () => {
         EXERCISE_CATEGORIES.forEach(cat => {
             expect(getByText(cat.label)).toBeTruthy();
         });
-        expect(getByText('All Exercises')).toBeTruthy();
+        expect(getByText('All')).toBeTruthy();
     });
 
     it('shows question text after entering deck', () => {
@@ -449,10 +466,26 @@ describe('<ExerciseDeck />', () => {
         expect(modalItems.map(c => c.prompt)).toContain(q.textContent);
     });
 
+    it('filters exercises by shopping category', () => {
+        const { getByText, getByTestId } = render(<ExerciseDeck onBack={vi.fn()} />);
+        fireEvent.click(getByText('Shopping'));
+        const q = getByTestId('speaking-question');
+        const shoppingItems = EXERCISES.filter(c => c.category === 'shopping');
+        expect(shoppingItems.map(c => c.prompt)).toContain(q.textContent);
+    });
+
+    it('filters exercises by daily-life category', () => {
+        const { getByText, getByTestId } = render(<ExerciseDeck onBack={vi.fn()} />);
+        fireEvent.click(getByText('Daily Life'));
+        const q = getByTestId('speaking-question');
+        const dailyLifeItems = EXERCISES.filter(c => c.category === 'daily-life');
+        expect(dailyLifeItems.map(c => c.prompt)).toContain(q.textContent);
+    });
+
     it('applies autoFitStyle on long prompts to prevent clipping', () => {
         Object.defineProperty(window, 'innerWidth', { value: 375, writable: true });
         const { getByTestId, getByText } = render(<ExerciseDeck onBack={vi.fn()} />);
-        fireEvent.click(getByText('All Exercises'));
+        fireEvent.click(getByText('All'));
         // The question element should have an inline font-size if text is long
         const el = getByTestId('speaking-question');
         const text = el.textContent ?? '';

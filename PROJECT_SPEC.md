@@ -40,7 +40,7 @@ thaiscript/
 ├── book/
 │   ├── vocabulary.csv          # 263 vocabulary entries (latinised, thai, type, english, grammar)
 │   ├── vocabulary_old.csv      # Previous vocabulary extraction (archived)
-│   ├── exercises.csv           # 44 translation exercises (english, latinised, thai, category)
+│   ├── exercises.csv           # 73 translation exercises (english, latinised, thai, category)
 │   ├── ocr_extract.py          # OCR extraction script (pymupdf + tesseract)
 │   ├── 1.pdf                   # Book pages: Places, Daily Activities, Numbers, Food & Drink
 │   ├── 2.pdf                   # Book pages: Introduction, Greeting, Places
@@ -243,15 +243,17 @@ Sourced from `book/vocabulary.csv`, extracted via OCR from "Speak Thai in 15 Day
 english exercise,latinised thai solution,thai script solution,category
 ```
 
-### Content — 44 translation exercises
+### Content — 73 translation exercises
 
 Sourced from `book/exercises.csv`, extracted from exercise sections of the textbook. Users are given an English sentence and must produce the Thai translation.
 
 | Category | Count |
 |---|---|
 | places | 15 |
-| numbers | 15 |
 | daily-activities | 14 |
+| numbers | 15 |
+| food-ordering | 14 |
+| time | 15 |
 
 ---
 
@@ -260,17 +262,19 @@ Sourced from `book/exercises.csv`, extracted from exercise sections of the textb
 ### Type
 
 ```ts
-export type ExerciseCategory = 'modals' | 'directions' | 'food-ordering' | 'places' | 'daily-activities' | 'numbers';
+export type ExerciseCategory = 'modals' | 'places' | 'food' | 'numbers' | 'shopping' | 'daily-life';
 
 export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
     { id: 'modals', label: 'Modal Verbs' },
-    { id: 'directions', label: 'Directions' },
-    { id: 'food-ordering', label: 'Food Ordering' },
     { id: 'places', label: 'Places' },
-    { id: 'daily-activities', label: 'Daily Activities' },
+    { id: 'food', label: 'Food' },
     { id: 'numbers', label: 'Numbers' },
+    { id: 'shopping', label: 'Shopping' },
+    { id: 'daily-life', label: 'Daily Life' },
 ];
 ```
+
+Exercise categories have the same structure as vocabulary categories but use `'modals'` (for modal verb exercises) instead of `'basics'`.
 
 ### Interface
 
@@ -283,18 +287,18 @@ export interface Exercise {
 }
 ```
 
-### Content — 89 exercises
+### Content — 118 exercises
 
 Sentence-level translation exercises sourced from `book/exercises.csv` and original exercise entries. Vocabulary/expression entries have been moved back to `vocabulary.ts`.
 
 | Category | Count | Examples |
 |---|---|---|
-| modals | 15 | "I want to eat pad thai", "Can you speak Thai?", "I must go now" |
-| directions | 15 | "Where is the train station?", "Turn left at the market", "Is it far?" |
-| food-ordering | 15 | "I'd like fried rice, please", "Not too spicy", "Check, please" |
-| places | 15 | "Where is the nearest BTS station?", "The hotel is near the park" |
-| daily-activities | 14 | "Can you swim?", "I like going for walks" |
-| numbers | 15 | "How much is this?", "This one comes from Japan" |
+| modals | 17 | "I want to eat pad thai", "Can you speak Thai?", "I must go now" |
+| places | 27 | "Where is the train station?", "Turn left at the market", "Where is the bathroom?" |
+| food | 30 | "I'd like fried rice, please", "May I have noodle soup?", "Keep the change." |
+| daily-life | 33 | "Can you swim?", "What day is today?", "I drink coffee every day." |
+| numbers | 4 | "What is your telephone number?", "How old are you?" |
+| shopping | 7 | "How many baht is that one?", "It is very expensive.", "Can you reduce the price?" |
 
 ---
 
@@ -440,7 +444,7 @@ const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 
 - Title: "Exercises", subtitle: "Choose a category"
 - `.category-grid` with 6 buttons (one per `EXERCISE_CATEGORIES` entry) — each calls `startDeck(cat.id)`
-- "All Exercises" button — calls `startDeck(null)`
+- "All" button inside the grid — calls `startDeck(null)`
 - "Back" button — calls `onBack`
 
 *Flashcard screen* (shown while `!isDeckComplete`):
@@ -513,7 +517,7 @@ const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 
 - Title: "Vocabulary", subtitle: "Choose a category"
 - `.category-grid` with 6 buttons (one per `VOCABULARY_CATEGORIES` entry) — each calls `startDeck(cat.id)`
-- "All Vocabulary" button — calls `startDeck(null)`
+- "All" button inside the grid — calls `startDeck(null)`
 - "Back" button — calls `onBack`
 
 *Flashcard screen* (shown while `!isDeckComplete`):
@@ -685,12 +689,12 @@ function renderVowelDeck() {
 }
 function renderVocabDeck() {
   const result = render(<VocabularyDeck onBack={vi.fn()} />);
-  fireEvent.click(result.getByText('All Vocabulary'));  // enter deck from category screen
+  fireEvent.click(result.getByText('All'));  // enter deck from category screen
   return result;
 }
 function renderExerciseDeck() {
   const result = render(<ExerciseDeck onBack={vi.fn()} />);
-  fireEvent.click(result.getByText('All Exercises'));  // enter deck from category screen
+  fireEvent.click(result.getByText('All'));  // enter deck from category screen
   return result;
 }
 ```
@@ -723,10 +727,10 @@ function renderExerciseDeck() {
 | Navigates to vowels deck via Script | After Script → Practice Vowels, `vowel-length-label` is present |
 | Returns from script menu to home | After Script → Back, home buttons are visible |
 | Returns from deck to script menu | After Script → deck → Back to Menu, script deck buttons visible |
-| Navigates to vocabulary category screen | After clicking "Vocabulary", "Choose a category" and "All Vocabulary" are visible |
-| Navigates to vocabulary deck via All Vocabulary and back | After Vocabulary → All Vocabulary, "Show Solution" visible; Back to Categories → Back returns home |
-| Navigates to exercises category screen | After clicking "Exercises", "Choose a category" and "All Exercises" are visible |
-| Navigates to exercises deck via All Exercises and back | After Exercises → All Exercises, "Show Answer" visible; Back to Categories → Back returns home |
+| Navigates to vocabulary category screen | After clicking "Vocabulary", "Choose a category" and "All" are visible |
+| Navigates to vocabulary deck via All and back | After Vocabulary → All, "Show Solution" visible; Back to Categories → Back returns home |
+| Navigates to exercises category screen | After clicking "Exercises", "Choose a category" and "All" are visible |
+| Navigates to exercises deck via All and back | After Exercises → All, "Show Answer" visible; Back to Categories → Back returns home |
 | Shows placeholder for Pronunciation | After clicking "Pronunciation", "Coming soon" is visible |
 | Returns from placeholder to home | After Pronunciation → Back, home buttons are visible |
 
@@ -735,7 +739,7 @@ function renderExerciseDeck() {
 | Test | Assertion |
 |---|---|
 | Shows category selection screen on first render | "Choose a category" and all 6 `VOCABULARY_CATEGORIES` labels visible |
-| Shows question text after entering deck | After "All Vocabulary", `.vocab-question-primary` contains a value from `VOCABULARY` |
+| Shows question text after entering deck | After "All", `.vocab-question-primary` contains a value from `VOCABULARY` |
 | Shows secondary question text | `.vocab-question-secondary` contains a value from `VOCABULARY` |
 | Hides solution by default | `vocab-solution-primary` and `vocab-solution-secondary` have CSS class `hidden` |
 | Shows solution after toggle | After "Show Solution", `vocab-solution-primary` loses `hidden` class |
@@ -755,7 +759,7 @@ function renderExerciseDeck() {
 | Test | Assertion |
 |---|---|
 | Shows category selection screen on first render | "Choose a category" and all 6 `EXERCISE_CATEGORIES` labels visible |
-| Shows question text after entering deck | After "All Exercises", `speaking-question` contains a value from `EXERCISES` |
+| Shows question text after entering deck | After "All", `speaking-question` contains a value from `EXERCISES` |
 | Shows a category label | `speaking-category` contains one of the labels from `EXERCISE_CATEGORIES` |
 | Hides solution by default | `speaking-solution` has CSS class `hidden` |
 | Shows answer after toggle | After "Show Answer", `speaking-solution` loses `hidden` class |

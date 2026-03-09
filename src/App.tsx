@@ -388,13 +388,23 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
                                 {cat.label}
                             </button>
                         ))}
+                        {VOCABULARY_CATEGORIES.length % 2 === 1 && (
+                            <button
+                                className="button category-button"
+                                onClick={() => startDeck(null)}
+                            >
+                                All
+                            </button>
+                        )}
                     </div>
-                    <button
-                        className="button menu-button"
-                        onClick={() => startDeck(null)}
-                    >
-                        All Vocabulary
-                    </button>
+                    {VOCABULARY_CATEGORIES.length % 2 === 0 && (
+                        <button
+                            className="button menu-button"
+                            onClick={() => startDeck(null)}
+                        >
+                            All
+                        </button>
+                    )}
                     <button className="button menu-button back-button" onClick={onBack}>
                         Back
                     </button>
@@ -449,13 +459,13 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
                             data-testid="prev-btn"
                             className="button"
                             disabled={currentIndex === 0}
-                            onClick={() => setCurrentIndex(i => i - 1)}
+                            onClick={() => { setCurrentIndex(i => i - 1); setShowAnswer(false); }}
                         >
                             Previous
                         </button>
                         <button
                             className="button"
-                            onClick={() => setCurrentIndex(i => i + 1)}
+                            onClick={() => { setCurrentIndex(i => i + 1); setShowAnswer(false); }}
                         >
                             Next
                         </button>
@@ -624,13 +634,23 @@ export function ExerciseDeck({ onBack }: { onBack: () => void }) {
                                 {cat.label}
                             </button>
                         ))}
+                        {EXERCISE_CATEGORIES.length % 2 === 1 && (
+                            <button
+                                className="button category-button"
+                                onClick={() => startDeck(null)}
+                            >
+                                All
+                            </button>
+                        )}
                     </div>
-                    <button
-                        className="button menu-button"
-                        onClick={() => startDeck(null)}
-                    >
-                        All Exercises
-                    </button>
+                    {EXERCISE_CATEGORIES.length % 2 === 0 && (
+                        <button
+                            className="button menu-button"
+                            onClick={() => startDeck(null)}
+                        >
+                            All
+                        </button>
+                    )}
                     <button className="button menu-button back-button" onClick={onBack}>
                         Back
                     </button>
