@@ -314,9 +314,9 @@ describe('<VocabularyDeck />', () => {
 
     it('filters vocabulary by category', () => {
         const { getByText, getByTestId } = render(<VocabularyDeck onBack={vi.fn()} />);
-        fireEvent.click(getByText('Food'));
+        fireEvent.click(getByText('Food and Drink'));
         const q = getByTestId('vocab-question-primary');
-        const foodItems = VOCABULARY.filter(v => v.category === 'food');
+        const foodItems = VOCABULARY.filter(v => v.category === 'food-and-drink');
         expect(foodItems.map(v => v.english)).toContain(q.textContent);
     });
 
@@ -458,28 +458,36 @@ describe('<ExerciseDeck />', () => {
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
 
-    it('filters exercises by category', () => {
+    it('filters exercises by greeting category', () => {
         const { getByText, getByTestId } = render(<ExerciseDeck onBack={vi.fn()} />);
-        fireEvent.click(getByText('Modal Verbs'));
+        fireEvent.click(getByText('Greeting'));
         const q = getByTestId('speaking-question');
-        const modalItems = EXERCISES.filter(c => c.category === 'modals');
-        expect(modalItems.map(c => c.prompt)).toContain(q.textContent);
+        const greetingItems = EXERCISES.filter(c => c.category === 'greeting');
+        expect(greetingItems.map(c => c.prompt)).toContain(q.textContent);
     });
 
-    it('filters exercises by shopping category', () => {
+    it('filters exercises by activity category', () => {
         const { getByText, getByTestId } = render(<ExerciseDeck onBack={vi.fn()} />);
-        fireEvent.click(getByText('Shopping'));
+        fireEvent.click(getByText('Activity'));
         const q = getByTestId('speaking-question');
-        const shoppingItems = EXERCISES.filter(c => c.category === 'shopping');
-        expect(shoppingItems.map(c => c.prompt)).toContain(q.textContent);
+        const activityItems = EXERCISES.filter(c => c.category === 'activity');
+        expect(activityItems.map(c => c.prompt)).toContain(q.textContent);
     });
 
-    it('filters exercises by daily-life category', () => {
+    it('filters exercises by food-and-drink category', () => {
         const { getByText, getByTestId } = render(<ExerciseDeck onBack={vi.fn()} />);
-        fireEvent.click(getByText('Daily Life'));
+        fireEvent.click(getByText('Food and Drink'));
         const q = getByTestId('speaking-question');
-        const dailyLifeItems = EXERCISES.filter(c => c.category === 'daily-life');
-        expect(dailyLifeItems.map(c => c.prompt)).toContain(q.textContent);
+        const foodItems = EXERCISES.filter(c => c.category === 'food-and-drink');
+        expect(foodItems.map(c => c.prompt)).toContain(q.textContent);
+    });
+
+    it('filters exercises by period-of-time category', () => {
+        const { getByText, getByTestId } = render(<ExerciseDeck onBack={vi.fn()} />);
+        fireEvent.click(getByText('Period of Time'));
+        const q = getByTestId('speaking-question');
+        const periodItems = EXERCISES.filter(c => c.category === 'period-of-time');
+        expect(periodItems.map(c => c.prompt)).toContain(q.textContent);
     });
 
     it('applies autoFitStyle on long prompts to prevent clipping', () => {

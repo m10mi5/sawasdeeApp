@@ -181,15 +181,16 @@ export interface Vowel {
 ### Type
 
 ```ts
-export type VocabularyCategory = 'basics' | 'places' | 'food' | 'numbers' | 'shopping' | 'daily-life';
+export type VocabularyCategory = 'greeting' | 'places' | 'activity' | 'numbers' | 'food-and-drink' | 'days-and-months' | 'period-of-time';
 
 export const VOCABULARY_CATEGORIES: { id: VocabularyCategory; label: string }[] = [
-    { id: 'basics', label: 'Basics' },
+    { id: 'greeting', label: 'Greeting' },
     { id: 'places', label: 'Places' },
-    { id: 'food', label: 'Food' },
+    { id: 'activity', label: 'Activity' },
     { id: 'numbers', label: 'Numbers' },
-    { id: 'shopping', label: 'Shopping' },
-    { id: 'daily-life', label: 'Daily Life' },
+    { id: 'food-and-drink', label: 'Food and Drink' },
+    { id: 'days-and-months', label: 'Days and Months' },
+    { id: 'period-of-time', label: 'Period of Time' },
 ];
 ```
 
@@ -208,16 +209,16 @@ export interface VocabItem {
 
 ### Content — 264 vocabulary items
 
-Sourced from `book/vocabulary.csv`, extracted via OCR from "Speak Thai in 15 Days" textbook PDFs. Covers greeting, places, daily activities, numbers, shopping, clothing, and food & drink. Includes both single words (type `'word'`) and expression/phrase entries (type `'expression'`).
+Sourced from `book/vocabulary.csv`, extracted via OCR from "Speak Thai in 15 Days" textbook PDFs. Categories follow the book's chapter structure.
 
 | Category | Count |
 |---|---|
-| daily-life | 74 |
-| food | 51 |
+| activity | 73 |
+| numbers | 59 |
+| food-and-drink | 51 |
 | places | 44 |
-| shopping | 41 |
-| basics | 36 |
-| numbers | 18 |
+| greeting | 36 |
+| period-of-time | 1 |
 
 | Grammar | Count |
 |---|---|
@@ -262,19 +263,20 @@ Sourced from `book/exercises.csv`, extracted from exercise sections of the textb
 ### Type
 
 ```ts
-export type ExerciseCategory = 'modals' | 'places' | 'food' | 'numbers' | 'shopping' | 'daily-life';
+export type ExerciseCategory = 'greeting' | 'places' | 'activity' | 'numbers' | 'food-and-drink' | 'days-and-months' | 'period-of-time';
 
 export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
-    { id: 'modals', label: 'Modal Verbs' },
+    { id: 'greeting', label: 'Greeting' },
     { id: 'places', label: 'Places' },
-    { id: 'food', label: 'Food' },
+    { id: 'activity', label: 'Activity' },
     { id: 'numbers', label: 'Numbers' },
-    { id: 'shopping', label: 'Shopping' },
-    { id: 'daily-life', label: 'Daily Life' },
+    { id: 'food-and-drink', label: 'Food and Drink' },
+    { id: 'days-and-months', label: 'Days and Months' },
+    { id: 'period-of-time', label: 'Period of Time' },
 ];
 ```
 
-Exercise categories have the same structure as vocabulary categories but use `'modals'` (for modal verb exercises) instead of `'basics'`.
+Exercise categories match the book's chapter structure (Greeting, Places, Activity, Numbers, Food and Drink, Days and Months, Period of Time).
 
 ### Interface
 
@@ -287,18 +289,19 @@ export interface Exercise {
 }
 ```
 
-### Content — 118 exercises
+### Content — 117 exercises
 
-Sentence-level translation exercises sourced from `book/exercises.csv` and original exercise entries. Vocabulary/expression entries have been moved back to `vocabulary.ts`.
+Sentence-level translation exercises sourced from `book/exercises.csv` and original exercise entries. Categories follow the book's chapter structure.
 
 | Category | Count | Examples |
 |---|---|---|
-| modals | 17 | "I want to eat pad thai", "Can you speak Thai?", "I must go now" |
-| places | 27 | "Where is the train station?", "Turn left at the market", "Where is the bathroom?" |
-| food | 30 | "I'd like fried rice, please", "May I have noodle soup?", "Keep the change." |
-| daily-life | 33 | "Can you swim?", "What day is today?", "I drink coffee every day." |
-| numbers | 4 | "What is your telephone number?", "How old are you?" |
-| shopping | 7 | "How many baht is that one?", "It is very expensive.", "Can you reduce the price?" |
+| food-and-drink | 32 | "I'd like fried rice, please", "May I have noodle soup?", "Keep the change." |
+| places | 28 | "Where is the train station?", "Turn left at the market", "Where is the bathroom?" |
+| greeting | 17 | "I want to eat pad thai", "Can you speak Thai?", "I must go now" |
+| activity | 16 | "Can you swim?", "Can you dance with me?", "Say again please." |
+| period-of-time | 11 | "I drink coffee every day.", "We went to the temple last week.", "She has never eaten papaya salad." |
+| numbers | 9 | "What is your telephone number?", "How old are you?", "How many baht is that one?" |
+| days-and-months | 4 | "What day is today?", "Yesterday was Monday.", "Tomorrow is the 21st." |
 
 ---
 
@@ -443,7 +446,7 @@ const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 *Category selection screen* (shown when `deck.length === 0`):
 
 - Title: "Exercises", subtitle: "Choose a category"
-- `.category-grid` with 6 buttons (one per `EXERCISE_CATEGORIES` entry) — each calls `startDeck(cat.id)`
+- `.category-grid` with 7 buttons (one per `EXERCISE_CATEGORIES` entry) — each calls `startDeck(cat.id)`
 - "All" button inside the grid — calls `startDeck(null)`
 - "Back" button — calls `onBack`
 
@@ -516,7 +519,7 @@ const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 *Category selection screen* (shown when `deck.length === 0`):
 
 - Title: "Vocabulary", subtitle: "Choose a category"
-- `.category-grid` with 6 buttons (one per `VOCABULARY_CATEGORIES` entry) — each calls `startDeck(cat.id)`
+- `.category-grid` with 7 buttons (one per `VOCABULARY_CATEGORIES` entry) — each calls `startDeck(cat.id)`
 - "All" button inside the grid — calls `startDeck(null)`
 - "Back" button — calls `onBack`
 
@@ -738,7 +741,7 @@ function renderExerciseDeck() {
 
 | Test | Assertion |
 |---|---|
-| Shows category selection screen on first render | "Choose a category" and all 6 `VOCABULARY_CATEGORIES` labels visible |
+| Shows category selection screen on first render | "Choose a category" and all 7 `VOCABULARY_CATEGORIES` labels visible |
 | Shows question text after entering deck | After "All", `.vocab-question-primary` contains a value from `VOCABULARY` |
 | Shows secondary question text | `.vocab-question-secondary` contains a value from `VOCABULARY` |
 | Hides solution by default | `vocab-solution-primary` and `vocab-solution-secondary` have CSS class `hidden` |
@@ -758,7 +761,7 @@ function renderExerciseDeck() {
 
 | Test | Assertion |
 |---|---|
-| Shows category selection screen on first render | "Choose a category" and all 6 `EXERCISE_CATEGORIES` labels visible |
+| Shows category selection screen on first render | "Choose a category" and all 7 `EXERCISE_CATEGORIES` labels visible |
 | Shows question text after entering deck | After "All", `speaking-question` contains a value from `EXERCISES` |
 | Shows a category label | `speaking-category` contains one of the labels from `EXERCISE_CATEGORIES` |
 | Hides solution by default | `speaking-solution` has CSS class `hidden` |
@@ -773,7 +776,7 @@ function renderExerciseDeck() {
 | Switches to TH → EN | After toggle, thai/latinised visible as question, prompt hidden |
 | Reveals solution in TH → EN | After toggle + "Show Answer", `speaking-solution` loses `hidden` class |
 | Resets answer on direction change | After showing answer then toggling direction, answer side is hidden again |
-| Filters exercises by category | After clicking a category button, deck contains only items from that category |
+| Filters exercises by category | 4 tests: greeting, activity, food-and-drink, period-of-time — deck contains only items from that category |
 | Applies autoFitStyle on long prompts | At 375px viewport width, long prompts get inline fontSize |
 
 #### 3. `<FlashcardDeck />` rendering (4 tests)
