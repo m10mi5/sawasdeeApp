@@ -512,10 +512,10 @@ function ExerciseCard({ item, showAnswer, direction }: ExerciseCardProps) {
     const categoryLabel = EXERCISE_CATEGORIES.find(c => c.id === item.category)?.label ?? item.category;
 
     const enToTh = direction === 'en-to-th';
-    const questionText = enToTh ? item.prompt : item.thai;
+    const questionText = enToTh ? item.prompt : item.latinised;
     const solutionLine1 = enToTh ? item.latinised : item.prompt;
     const solutionLine2 = enToTh ? item.thai : null;
-    const questionLine2 = enToTh ? null : item.latinised;
+    const questionLine2 = enToTh ? null : item.thai;
 
     return (
         <div className="card speaking-card">

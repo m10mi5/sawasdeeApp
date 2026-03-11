@@ -457,8 +457,8 @@ describe('<ExerciseDeck />', () => {
         const { getByTestId } = renderExerciseDeck();
         fireEvent.click(getByTestId('toggle-direction-btn'));
         expect(getByTestId('toggle-direction-btn').textContent).toBe('TH → EN');
-        // Question now shows thai
-        expect(EXERCISES.map(c => c.thai)).toContain(getByTestId('speaking-question').textContent);
+        // Question now shows latinised
+        expect(EXERCISES.map(c => c.latinised)).toContain(getByTestId('speaking-question').textContent);
         // Solution is hidden
         expect(getByTestId('speaking-solution').classList.contains('hidden')).toBe(true);
     });
