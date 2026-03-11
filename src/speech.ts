@@ -1,8 +1,15 @@
+/// <reference types="vite/client" />
+
 /**
- * Speak Thai text using the browser's Web Speech API.
- * Falls back silently if SpeechSynthesis is unavailable.
+ * Play an audio file from public/audio/.
+ * Falls back to browser TTS if no audio file is provided.
  */
-export function speakThai(text: string): void {
+export function speakThai(text: string, audioFile?: string): void {
+    if (audioFile) {
+        const audio = new Audio(`${import.meta.env.BASE_URL}audio/${audioFile}`);
+        audio.play();
+        return;
+    }
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);

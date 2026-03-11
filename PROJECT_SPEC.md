@@ -15,7 +15,7 @@
 | UI library | React (plain DOM) |
 | Styling | CSS (src/styles.css) |
 | State management | React Hooks (`useState`) |
-| TTS | Web Speech API (`SpeechSynthesisUtterance`, language `'th'`) |
+| Audio | MP3 files from school website, Web Speech API fallback |
 | Test runner | Vitest |
 | Component testing | @testing-library/react |
 | Hosting | GitHub Pages |
@@ -37,10 +37,18 @@ thaiscript/
 │   ├── copilot-instructions.md
 │   └── workflows/
 │       └── deploy.yml  # GHA: build + deploy to GitHub Pages on merge
+├── public/
+│   └── audio/              # 913 MP3 audio files scraped from school website
 ├── book/
-│   ├── vocabulary.csv          # 263 vocabulary entries (latinised, thai, type, english, grammar)
+│   ├── scraped_vocab.json      # Raw scraped data (946 items across 16 categories)
+│   ├── scrape_vocab.py         # Python scraper for poc.li.cmu.ac.th/vocab/
+│   ├── download_audio.py       # Audio file downloader
+│   ├── generate_ts.py          # TypeScript data file generator
+│   ├── classify_grammar.py     # Grammar (part-of-speech) classifier for vocab items
+│   ├── grammar_map.json        # Generated grammar labels per category
+│   ├── vocabulary.csv          # 263 vocabulary entries (archived, replaced by scraped data)
 │   ├── vocabulary_old.csv      # Previous vocabulary extraction (archived)
-│   ├── exercises.csv           # 73 translation exercises (english, latinised, thai, category)
+│   ├── exercises.csv           # 73 translation exercises (archived, replaced by scraped data)
 │   ├── ocr_extract.py          # OCR extraction script (pymupdf + tesseract)
 │   ├── 1.pdf                   # Book pages: Places, Daily Activities, Numbers, Food & Drink
 │   ├── 2.pdf                   # Book pages: Introduction, Greeting, Places
@@ -181,80 +189,67 @@ export interface Vowel {
 ### Type
 
 ```ts
-export type VocabularyCategory = 'greeting' | 'places' | 'activity' | 'numbers' | 'food-and-drink' | 'days-and-months' | 'period-of-time';
+export type VocabularyCategory = 'introduction' | 'greeting' | 'places' | 'daily-activities' | 'numbers' | 'food-and-drink' | 'days-and-months' | 'period-of-time' | 'family' | 'occupations' | 'fruits' | 'feeling-and-adjective' | 'color' | 'parts-of-body' | 'transportation';
 
 export const VOCABULARY_CATEGORIES: { id: VocabularyCategory; label: string }[] = [
+    { id: 'introduction', label: 'Introduction' },
     { id: 'greeting', label: 'Greeting' },
     { id: 'places', label: 'Places' },
-    { id: 'activity', label: 'Activity' },
+    { id: 'daily-activities', label: 'Daily Activities' },
     { id: 'numbers', label: 'Numbers' },
     { id: 'food-and-drink', label: 'Food and Drink' },
     { id: 'days-and-months', label: 'Days and Months' },
     { id: 'period-of-time', label: 'Period of Time' },
+    { id: 'family', label: 'Family' },
+    { id: 'occupations', label: 'Occupations' },
+    { id: 'fruits', label: 'Fruits' },
+    { id: 'feeling-and-adjective', label: 'Feeling and Adjective' },
+    { id: 'color', label: 'Color' },
+    { id: 'parts-of-body', label: 'Parts of Body' },
+    { id: 'transportation', label: 'Transportation' },
 ];
 ```
 
 ### Interface
 
 ```ts
+export type Grammar = 'noun' | 'verb' | 'adjective' | 'adverb' | 'pronoun' | 'preposition' | 'conjunction' | 'particle' | 'number' | 'phrase';
+
 export interface VocabItem {
-  latinised: string;            // Romanised pronunciation, e.g. 'sà baai'
-  thai: string;                 // Thai script, e.g. 'สบาย'
-  type: 'word' | 'expression';  // Word or expression/phrase
   english: string;              // English translation, e.g. 'well / comfortable'
-  grammar: string;              // Part of speech: noun, verb, adjective, pronoun, particle, adverb, phrase, etc.
+  thai: string;                 // Thai script, e.g. 'สบาย'
+  latinised: string;            // Romanised pronunciation, e.g. 'sà baai'
+  grammar: Grammar;             // Part-of-speech label, e.g. 'noun', 'verb'
   category: VocabularyCategory; // Vocabulary category for deck filtering
+  audio?: string;               // Audio filename in public/audio/, e.g. '2023-05-16-11-30-50intro-session1_45.mp3'
 }
 ```
 
-### Content — 264 vocabulary items
+### Content — 770 vocabulary items
 
-Sourced from `book/vocabulary.csv`, extracted via OCR from "Speak Thai in 15 Days" textbook PDFs. Categories follow the book's chapter structure.
+Sourced from https://poc.li.cmu.ac.th/vocab/ (scraped via `book/scrape_vocab.py`). Each item has an associated MP3 audio recording. Items are classified as vocabulary when they are single words, simple phrases, common expressions, or definitions (vs full sentences which become exercises). Classification uses pattern-matching heuristics in `book/generate_ts.py`.
 
 | Category | Count |
 |---|---|
-| activity | 73 |
-| numbers | 59 |
-| food-and-drink | 51 |
-| places | 44 |
-| greeting | 36 |
-| period-of-time | 1 |
-
-| Grammar | Count |
-|---|---|
-| noun | 114 |
-| phrase | 44 |
-| verb | 35 |
-| adjective | 19 |
-| number | 18 |
-| adverb | 14 |
-| pronoun | 10 |
-| preposition | 4 |
-| particle | 3 |
-| conjunction | 2 |
-| interjection | 1 |
+| food-and-drink | 84 |
+| greeting | 78 |
+| daily-activities | 78 |
+| numbers | 78 |
+| places | 60 |
+| feeling-and-adjective | 50 |
+| parts-of-body | 49 |
+| period-of-time | 47 |
+| occupations | 45 |
+| days-and-months | 44 |
+| family | 36 |
+| transportation | 35 |
+| introduction | 34 |
+| fruits | 29 |
+| color | 23 |
 
 ---
 
-## Data — `book/exercises.csv`
 
-### Format
-
-```
-english exercise,latinised thai solution,thai script solution,category
-```
-
-### Content — 73 translation exercises
-
-Sourced from `book/exercises.csv`, extracted from exercise sections of the textbook. Users are given an English sentence and must produce the Thai translation.
-
-| Category | Count |
-|---|---|
-| places | 15 |
-| daily-activities | 14 |
-| numbers | 15 |
-| food-ordering | 14 |
-| time | 15 |
 
 ---
 
@@ -263,45 +258,60 @@ Sourced from `book/exercises.csv`, extracted from exercise sections of the textb
 ### Type
 
 ```ts
-export type ExerciseCategory = 'greeting' | 'places' | 'activity' | 'numbers' | 'food-and-drink' | 'days-and-months' | 'period-of-time';
+export type ExerciseCategory = 'greeting' | 'places' | 'daily-activities' | 'numbers' | 'food-and-drink' | 'days-and-months' | 'period-of-time' | 'family' | 'occupations' | 'fruits' | 'feeling-and-adjective' | 'color' | 'parts-of-body' | 'transportation';
 
 export const EXERCISE_CATEGORIES: { id: ExerciseCategory; label: string }[] = [
     { id: 'greeting', label: 'Greeting' },
     { id: 'places', label: 'Places' },
-    { id: 'activity', label: 'Activity' },
+    { id: 'daily-activities', label: 'Daily Activities' },
     { id: 'numbers', label: 'Numbers' },
     { id: 'food-and-drink', label: 'Food and Drink' },
     { id: 'days-and-months', label: 'Days and Months' },
     { id: 'period-of-time', label: 'Period of Time' },
+    { id: 'family', label: 'Family' },
+    { id: 'occupations', label: 'Occupations' },
+    { id: 'fruits', label: 'Fruits' },
+    { id: 'feeling-and-adjective', label: 'Feeling and Adjective' },
+    { id: 'color', label: 'Color' },
+    { id: 'parts-of-body', label: 'Parts of Body' },
+    { id: 'transportation', label: 'Transportation' },
 ];
 ```
 
-Exercise categories match the book's chapter structure (Greeting, Places, Activity, Numbers, Food and Drink, Days and Months, Period of Time).
+Exercise categories match the school website lessons (14 of 15 categories have sentence-level items).
 
 ### Interface
 
 ```ts
 export interface Exercise {
-  prompt: string;                             // English prompt, e.g. 'I want to eat pad thai'
-  thai: string;                               // Thai script answer, e.g. 'อยากกินผัดไทย'
-  latinised: string;                          // Romanised answer, e.g. 'yàak gin phàt thai'
+  prompt: string;                             // English prompt, e.g. 'How are you?'
+  thai: string;                               // Thai script answer, e.g. 'สบายดีไหม'
+  latinised: string;                          // Romanised answer, e.g. 'kun sa baai dii mái ká(?)'
   category: ExerciseCategory;                 // Exercise category for deck filtering
+  audio?: string;                             // Audio filename in public/audio/
 }
 ```
 
-### Content — 117 exercises
+### Content — 175 exercises
 
-Sentence-level translation exercises sourced from `book/exercises.csv` and original exercise entries. Categories follow the book's chapter structure.
+Sentence-level translation exercises sourced from https://poc.li.cmu.ac.th/vocab/. Items are classified as exercises when they form complete sentences with subject-verb structure, questions, or imperative statements. Classification uses pattern-matching heuristics in `book/generate_ts.py`. Each has an associated MP3 audio recording.
 
-| Category | Count | Examples |
-|---|---|---|
-| food-and-drink | 32 | "I'd like fried rice, please", "May I have noodle soup?", "Keep the change." |
-| places | 28 | "Where is the train station?", "Turn left at the market", "Where is the bathroom?" |
-| greeting | 17 | "I want to eat pad thai", "Can you speak Thai?", "I must go now" |
-| activity | 16 | "Can you swim?", "Can you dance with me?", "Say again please." |
-| period-of-time | 11 | "I drink coffee every day.", "We went to the temple last week.", "She has never eaten papaya salad." |
-| numbers | 9 | "What is your telephone number?", "How old are you?", "How many baht is that one?" |
-| days-and-months | 4 | "What day is today?", "Yesterday was Monday.", "Tomorrow is the 21st." |
+| Category | Count |
+|---|---|
+| daily-activities | 35 |
+| parts-of-body | 20 |
+| days-and-months | 16 |
+| greeting | 15 |
+| family | 15 |
+| numbers | 14 |
+| transportation | 12 |
+| period-of-time | 10 |
+| food-and-drink | 9 |
+| places | 8 |
+| occupations | 8 |
+| color | 6 |
+| fruits | 5 |
+| feeling-and-adjective | 2 |
 
 ---
 
@@ -344,14 +354,19 @@ export function shuffleArray<T>(array: T[]): T[]
 ## Speech — `speech.ts`
 
 ```ts
-export function speakThai(text: string): void
+export function speakThai(text: string, audioFile?: string): void
 ```
 
-- Wraps the browser's **Web Speech API** (`SpeechSynthesisUtterance`).
-- Sets `utterance.lang = 'th'` for Thai pronunciation.
+- If `audioFile` is provided, plays the corresponding MP3 from `public/audio/` using the HTML5 `Audio` API.
+- Audio path is resolved relative to `import.meta.env.BASE_URL` for correct GitHub Pages deployment.
+- Falls back to the browser's **Web Speech API** (`SpeechSynthesisUtterance`) if no audio file is provided.
+- Sets `utterance.lang = 'th'` for Thai TTS pronunciation.
 - Calls `window.speechSynthesis.cancel()` before each `speak()` to prevent Chrome's speech queue from getting stuck.
 - Falls back silently if `window.speechSynthesis` is unavailable.
-- Thai TTS availability depends on the user's OS/browser having a Thai voice installed (works on Chrome/macOS/Windows; may be limited on Firefox/Linux).
+
+### Audio files
+
+913 MP3 files stored in `public/audio/`, scraped from `https://poc.li.cmu.ac.th/vocab/pages/teacheradmin/soundmp3/`. Each vocabulary item and exercise references its audio file via the optional `audio` field. 2 items on the school website had broken audio URLs (404) and fall back to TTS.
 
 ---
 
@@ -446,7 +461,7 @@ const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 *Category selection screen* (shown when `deck.length === 0`):
 
 - Title: "Exercises", subtitle: "Choose a category"
-- `.category-grid` with 7 buttons (one per `EXERCISE_CATEGORIES` entry) — each calls `startDeck(cat.id)`
+- `.category-grid` with 14 buttons (one per `EXERCISE_CATEGORIES` entry) — each calls `startDeck(cat.id)`
 - "All" button inside the grid — calls `startDeck(null)`
 - "Back" button — calls `onBack`
 
@@ -454,7 +469,7 @@ const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 
 - **Direction toggle** — pill button reading "EN → TH" or "TH → EN"; toggles `direction` state and resets `showAnswer` to `false`; `data-testid="toggle-direction-btn"`
 - `<ExerciseCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />`
-- **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
+- **▶ Listen** button — calls `speakThai(item.thai, item.audio)` (plays audio recording, falls back to TTS); `data-testid="play-btn"`
 - **Show/Hide Answer** toggle — label reads "Hide Answer" when visible, "Show Answer" when hidden; `data-testid="toggle-answer-btn"`
 - **Previous / Next** row — Previous disabled at index 0; navigating resets `showAnswer` to `false`
 - **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0; both reset `showAnswer` to `false`
@@ -519,7 +534,7 @@ const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 *Category selection screen* (shown when `deck.length === 0`):
 
 - Title: "Vocabulary", subtitle: "Choose a category"
-- `.category-grid` with 7 buttons (one per `VOCABULARY_CATEGORIES` entry) — each calls `startDeck(cat.id)`
+- `.category-grid` with 15 buttons (one per `VOCABULARY_CATEGORIES` entry) — each calls `startDeck(cat.id)`
 - "All" button inside the grid — calls `startDeck(null)`
 - "Back" button — calls `onBack`
 
@@ -527,7 +542,7 @@ const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
 
 - **Direction toggle** — pill button reading "EN → TH" or "TH → EN"; toggles `direction` state and resets `showAnswer` to `false`; `data-testid="toggle-direction-btn"`
 - `<VocabCard item={deck[currentIndex]} showAnswer={showAnswer} direction={direction} />`
-- **▶ Listen** button — calls `speakThai(item.thai)`; `data-testid="play-btn"`
+- **▶ Listen** button — calls `speakThai(item.thai, item.audio)` (plays audio recording, falls back to TTS); `data-testid="play-btn"`
 - **Show/Hide Solution** toggle — label reads "Hide Solution" / "Show Solution"; `data-testid="toggle-answer-btn"`
 - **Previous / Next** row — Previous disabled at index 0
 - **Back to Start / Shuffle Deck** row — Back to Start disabled at index 0
@@ -737,18 +752,19 @@ function renderExerciseDeck() {
 | Shows placeholder for Pronunciation | After clicking "Pronunciation", "Coming soon" is visible |
 | Returns from placeholder to home | After Pronunciation → Back, home buttons are visible |
 
-#### 2b. `<VocabularyDeck />` (15 tests)
+#### 2b. `<VocabularyDeck />` (16 tests)
 
 | Test | Assertion |
 |---|---|
-| Shows category selection screen on first render | "Choose a category" and all 7 `VOCABULARY_CATEGORIES` labels visible |
-| Shows question text after entering deck | After "All", `.vocab-question-primary` contains a value from `VOCABULARY` |
-| Shows secondary question text | `.vocab-question-secondary` contains a value from `VOCABULARY` |
+| Shows category selection screen on first render | \"Choose a category\" and all 15 `VOCABULARY_CATEGORIES` labels visible |
+| Shows question text after entering deck | After \"All\", `.vocab-question-primary` contains a value from `VOCABULARY` |
+| Shows secondary question text | `.vocab-question-secondary` is present |
 | Hides solution by default | `vocab-solution-primary` and `vocab-solution-secondary` have CSS class `hidden` |
 | Shows solution after toggle | After "Show Solution", `vocab-solution-primary` loses `hidden` class |
 | Hides solution on re-toggle | After show then "Hide Solution", `vocab-solution-primary` regains `hidden` class |
 | Advances to next card | After Next, `.vocab-question-primary` text changes |
 | Speaks Thai on play | `speakThai` called with a value from `VOCABULARY.map(v => v.thai)` |
+| Passes audio filename on play | `speakThai` called with `item.audio` matching the vocabulary item |
 | Deck Complete after all cards | After clicking Next `VOCABULARY.length` times, "Deck Complete!" is visible |
 | Direction toggle defaults to EN → TH | `toggle-direction-btn` reads "EN → TH" on first render |
 | Switches to TH → EN | After toggle, thai/latinised visible as question, english hidden |
@@ -757,11 +773,11 @@ function renderExerciseDeck() {
 | Filters vocabulary by category | After clicking a category button, deck contains only items from that category |
 | Applies autoFitStyle on long text | At 375px viewport width with TH→EN direction, long text gets inline fontSize |
 
-#### 2c. `<ExerciseDeck />` (17 tests)
+#### 2c. `<ExerciseDeck />` (18 tests)
 
 | Test | Assertion |
 |---|---|
-| Shows category selection screen on first render | "Choose a category" and all 7 `EXERCISE_CATEGORIES` labels visible |
+| Shows category selection screen on first render | \"Choose a category\" and all 14 `EXERCISE_CATEGORIES` labels visible |
 | Shows question text after entering deck | After "All", `speaking-question` contains a value from `EXERCISES` |
 | Shows a category label | `speaking-category` contains one of the labels from `EXERCISE_CATEGORIES` |
 | Hides solution by default | `speaking-solution` has CSS class `hidden` |
@@ -771,12 +787,13 @@ function renderExerciseDeck() {
 | Hides answer on re-toggle | After show then "Hide Answer", `speaking-solution` regains `hidden` class |
 | Advances to next card and hides answer | After Show Answer + Next, question changes and answer is hidden again |
 | Speaks Thai on play | `speakThai` called with a value from `EXERCISES.map(c => c.thai)` |
+| Passes audio filename on play | `speakThai` called with `item.audio` matching the exercise item |
 | Deck Complete after all cards | After clicking Next `EXERCISES.length` times, "Deck Complete!" is visible |
 | Direction toggle defaults to EN → TH | `toggle-direction-btn` reads "EN → TH" on first render |
 | Switches to TH → EN | After toggle, thai/latinised visible as question, prompt hidden |
 | Reveals solution in TH → EN | After toggle + "Show Answer", `speaking-solution` loses `hidden` class |
 | Resets answer on direction change | After showing answer then toggling direction, answer side is hidden again |
-| Filters exercises by category | 4 tests: greeting, activity, food-and-drink, period-of-time — deck contains only items from that category |
+| Filters exercises by category | 4 tests: greeting, daily-activities, food-and-drink, period-of-time — deck contains only items from that category |
 | Applies autoFitStyle on long prompts | At 375px viewport width, long prompts get inline fontSize |
 
 #### 3. `<FlashcardDeck />` rendering (4 tests)

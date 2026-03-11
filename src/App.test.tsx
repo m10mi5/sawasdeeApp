@@ -3,7 +3,7 @@ import { render, fireEvent } from '@testing-library/react';
 import { CONSONANTS } from './consonants';
 import { TONAL_RULES } from './tonalRules';
 import { VOWELS } from './vowels';
-import { VOCABULARY } from './vocabulary';
+import { VOCABULARY, Grammar } from './vocabulary';
 import { EXERCISES, EXERCISE_CATEGORIES } from './speakingChallenges';
 import { VOCABULARY_CATEGORIES } from './vocabulary';
 import { autoFitStyle, shuffleArray } from './utils';
@@ -214,7 +214,9 @@ describe('<VocabularyDeck />', () => {
         const q2 = getByTestId('vocab-question-secondary');
         expect(q2).toBeTruthy();
         // Default direction is en-to-th, so secondary shows grammar
-        expect(VOCABULARY.map(v => v.grammar)).toContain(q2.textContent);
+        const validGrammar: Grammar[] = ['noun', 'verb', 'adjective', 'adverb', 'pronoun',
+            'preposition', 'conjunction', 'particle', 'number', 'phrase'];
+        expect(validGrammar).toContain(q2.textContent);
     });
 
     it('hides solution by default', () => {
@@ -251,6 +253,16 @@ describe('<VocabularyDeck />', () => {
         fireEvent.click(getByTestId('play-btn'));
         const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
         expect(VOCABULARY.map(v => v.thai)).toContain(text);
+    });
+
+    it('passes audio filename to speakThai when play is pressed', () => {
+        (speakThai as ReturnType<typeof vi.fn>).mockClear();
+        const { getByTestId } = renderVocabDeck();
+        fireEvent.click(getByTestId('play-btn'));
+        const [text, audio] = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0];
+        const matchingItems = VOCABULARY.filter(v => v.thai === text);
+        expect(matchingItems.length).toBeGreaterThan(0);
+        expect(matchingItems.map(v => v.audio)).toContain(audio);
     });
 
     it('shows Deck Complete after going through all cards', () => {
@@ -418,6 +430,16 @@ describe('<ExerciseDeck />', () => {
         expect(EXERCISES.map(c => c.thai)).toContain(text);
     });
 
+    it('passes audio filename to speakThai when play is pressed', () => {
+        (speakThai as ReturnType<typeof vi.fn>).mockClear();
+        const { getByTestId } = renderExerciseDeck();
+        fireEvent.click(getByTestId('play-btn'));
+        const [text, audio] = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0];
+        const item = EXERCISES.find(e => e.thai === text);
+        expect(item).toBeTruthy();
+        expect(audio).toBe(item!.audio);
+    });
+
     it('shows Deck Complete after going through all cards', () => {
         const { getByText } = renderExerciseDeck();
         for (let i = 0; i < EXERCISES.length; i++) {
@@ -466,11 +488,11 @@ describe('<ExerciseDeck />', () => {
         expect(greetingItems.map(c => c.prompt)).toContain(q.textContent);
     });
 
-    it('filters exercises by activity category', () => {
+    it('filters exercises by daily-activities category', () => {
         const { getByText, getByTestId } = render(<ExerciseDeck onBack={vi.fn()} />);
-        fireEvent.click(getByText('Activity'));
+        fireEvent.click(getByText('Daily Activities'));
         const q = getByTestId('speaking-question');
-        const activityItems = EXERCISES.filter(c => c.category === 'activity');
+        const activityItems = EXERCISES.filter(c => c.category === 'daily-activities');
         expect(activityItems.map(c => c.prompt)).toContain(q.textContent);
     });
 

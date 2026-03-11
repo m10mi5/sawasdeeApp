@@ -356,7 +356,8 @@ export function VocabularyDeck({ onBack }: { onBack: () => void }) {
     }
 
     function handleSpeak() {
-        speakThai(deck[currentIndex].thai);
+        const item = deck[currentIndex];
+        speakThai(item.thai, item.audio);
     }
 
     function handleToggleDirection() {
@@ -592,7 +593,8 @@ export function ExerciseDeck({ onBack }: { onBack: () => void }) {
     }
 
     function handleSpeak() {
-        speakThai(deck[currentIndex].thai);
+        const item = deck[currentIndex];
+        speakThai(item.thai, item.audio);
     }
 
     function handleNext() {
