@@ -32,9 +32,28 @@ interface ImprovementCachePayload {
 const IMPROVEMENT_CACHE_KEY = 'sawasdee-improvement-needed-cache';
 const IMPROVEMENT_CACHE_VERSION = 1;
 const SWIPE_THRESHOLD_PX = 48;
-const DOUBLE_TAP_WINDOW_MS = 320;
+const DOUBLE_TAP_WINDOW_MS = 360;
 const LONG_PRESS_WINDOW_MS = 450;
 const TAP_CANCEL_THRESHOLD_PX = 14;
+const IGNORE_MOUSE_AFTER_TOUCH_MS = 800;
+const EDGE_TAP_ZONE_RATIO = 0.3;
+
+type TapZone = 'left' | 'middle' | 'right';
+
+function resolveTapZone(clientX: number, rect: DOMRect): TapZone {
+    if (rect.width <= 0) {
+        return 'middle';
+    }
+
+    const relativeX = (clientX - rect.left) / rect.width;
+    if (relativeX < EDGE_TAP_ZONE_RATIO) {
+        return 'left';
+    }
+    if (relativeX > 1 - EDGE_TAP_ZONE_RATIO) {
+        return 'right';
+    }
+    return 'middle';
+}
 
 function toKeySegment(value: string): string {
     return value
@@ -150,15 +169,26 @@ function useCardGestures(
         onSwipeNext: () => void;
         onSwipePrev: () => void;
         onDoubleTap: () => void;
-        onSingleTap?: () => void;
-        onLongPress?: () => void;
+        onSingleTapMiddle?: () => void;
+        onSingleTapLeft?: () => void;
+        onSingleTapRight?: () => void;
+        onLongPressMiddle?: () => void;
     },
 ) {
-    const startRef = useRef<{ x: number; y: number } | null>(null);
+    const startRef = useRef<{ x: number; y: number; zone: TapZone; startedAt: number } | null>(null);
     const lastTapRef = useRef(0);
     const singleTapTimeoutRef = useRef<number | null>(null);
     const longPressTimeoutRef = useRef<number | null>(null);
     const longPressTriggeredRef = useRef(false);
+    const ignoreMouseUntilRef = useRef(0);
+
+    function shouldIgnoreMouseEvent() {
+        return Date.now() < ignoreMouseUntilRef.current;
+    }
+
+    function markTouchInteraction() {
+        ignoreMouseUntilRef.current = Date.now() + IGNORE_MOUSE_AFTER_TOUCH_MS;
+    }
 
     function clearSingleTapTimeout() {
         if (singleTapTimeoutRef.current === null) {
@@ -194,15 +224,20 @@ function useCardGestures(
         }
     }
 
-    function startGesture(x: number, y: number) {
-        startRef.current = { x, y };
+    function startGesture(x: number, y: number, zone: TapZone) {
+        startRef.current = { x, y, zone, startedAt: Date.now() };
         longPressTriggeredRef.current = false;
         clearLongPressTimeout();
+
+        if (zone !== 'middle') {
+            return;
+        }
+
         longPressTimeoutRef.current = window.setTimeout(() => {
             longPressTriggeredRef.current = true;
             clearSingleTapTimeout();
             lastTapRef.current = 0;
-            options.onLongPress?.();
+            options.onLongPressMiddle?.();
         }, LONG_PRESS_WINDOW_MS);
     }
 
@@ -215,6 +250,8 @@ function useCardGestures(
 
         const dx = x - startRef.current.x;
         const dy = y - startRef.current.y;
+        const zone = startRef.current.zone;
+        const pressDurationMs = Date.now() - startRef.current.startedAt;
         startRef.current = null;
 
         const absX = Math.abs(dx);
@@ -240,6 +277,23 @@ function useCardGestures(
             return;
         }
 
+        if (zone !== 'middle') {
+            clearSingleTapTimeout();
+            lastTapRef.current = 0;
+
+            // Side zones are reserved for quick single-tap navigation only.
+            if (pressDurationMs > LONG_PRESS_WINDOW_MS) {
+                return;
+            }
+
+            if (zone === 'left') {
+                options.onSingleTapLeft?.();
+            } else {
+                options.onSingleTapRight?.();
+            }
+            return;
+        }
+
         const now = Date.now();
         if (now - lastTapRef.current <= DOUBLE_TAP_WINDOW_MS) {
             clearSingleTapTimeout();
@@ -251,29 +305,39 @@ function useCardGestures(
         lastTapRef.current = now;
         clearSingleTapTimeout();
         singleTapTimeoutRef.current = window.setTimeout(() => {
-            options.onSingleTap?.();
+            options.onSingleTapMiddle?.();
             singleTapTimeoutRef.current = null;
             lastTapRef.current = 0;
         }, DOUBLE_TAP_WINDOW_MS);
     }
 
     function handleMouseDown(event: ReactMouseEvent<HTMLDivElement>) {
-        startGesture(event.clientX, event.clientY);
+        if (shouldIgnoreMouseEvent()) {
+            return;
+        }
+        const zone = resolveTapZone(event.clientX, event.currentTarget.getBoundingClientRect());
+        startGesture(event.clientX, event.clientY, zone);
     }
 
     function handleMouseUp(event: ReactMouseEvent<HTMLDivElement>) {
+        if (shouldIgnoreMouseEvent()) {
+            return;
+        }
         finishGesture(event.clientX, event.clientY);
     }
 
     function handleTouchStart(event: ReactTouchEvent<HTMLDivElement>) {
+        markTouchInteraction();
         const touch = event.touches[0];
         if (!touch) {
             return;
         }
-        startGesture(touch.clientX, touch.clientY);
+        const zone = resolveTapZone(touch.clientX, event.currentTarget.getBoundingClientRect());
+        startGesture(touch.clientX, touch.clientY, zone);
     }
 
     function handleTouchEnd(event: ReactTouchEvent<HTMLDivElement>) {
+        markTouchInteraction();
         const touch = event.changedTouches[0];
         if (!touch) {
             return;
@@ -282,10 +346,14 @@ function useCardGestures(
     }
 
     function handleMouseMove(event: ReactMouseEvent<HTMLDivElement>) {
+        if (shouldIgnoreMouseEvent()) {
+            return;
+        }
         cancelLongPressIfMoved(event.clientX, event.clientY);
     }
 
     function handleTouchMove(event: ReactTouchEvent<HTMLDivElement>) {
+        markTouchInteraction();
         const touch = event.touches[0];
         if (!touch) {
             return;
@@ -301,10 +369,14 @@ function useCardGestures(
 
     useEffect(() => {
         function handleWindowMouseUp(event: MouseEvent) {
+            if (shouldIgnoreMouseEvent()) {
+                return;
+            }
             finishGesture(event.clientX, event.clientY);
         }
 
         function handleWindowTouchEnd(event: TouchEvent) {
+            markTouchInteraction();
             const touch = event.changedTouches[0];
             if (!touch) {
                 handleCancel();
@@ -314,6 +386,7 @@ function useCardGestures(
         }
 
         function handleWindowTouchCancel() {
+            markTouchInteraction();
             handleCancel();
         }
 
@@ -568,15 +641,17 @@ export function FlashcardDeck({
     }
 
     function handleLongPressReveal() {
-        setShowDetails(true);
+        setShowDetails(v => !v);
     }
 
     const gestureHandlers = useCardGestures({
         onSwipeNext: handleNext,
         onSwipePrev: handlePrev,
         onDoubleTap: handleToggleImprovement,
-        onSingleTap: handleSpeak,
-        onLongPress: handleLongPressReveal,
+        onSingleTapMiddle: handleSpeak,
+        onSingleTapLeft: handlePrev,
+        onSingleTapRight: handleNext,
+        onLongPressMiddle: handleLongPressReveal,
     });
 
     const inlineControls = (
@@ -814,15 +889,17 @@ export function VocabularyDeck({
     }
 
     function handleLongPressReveal() {
-        setShowAnswer(true);
+        setShowAnswer(v => !v);
     }
 
     const gestureHandlers = useCardGestures({
         onSwipeNext: handleNext,
         onSwipePrev: handlePrev,
         onDoubleTap: handleToggleImprovement,
-        onSingleTap: handleSpeak,
-        onLongPress: handleLongPressReveal,
+        onSingleTapMiddle: handleSpeak,
+        onSingleTapLeft: handlePrev,
+        onSingleTapRight: handleNext,
+        onLongPressMiddle: handleLongPressReveal,
     });
 
     const inlineControls = (
@@ -1130,15 +1207,17 @@ export function ExerciseDeck({
     }
 
     function handleLongPressReveal() {
-        setShowAnswer(true);
+        setShowAnswer(v => !v);
     }
 
     const gestureHandlers = useCardGestures({
         onSwipeNext: handleNext,
         onSwipePrev: handlePrev,
         onDoubleTap: handleToggleImprovement,
-        onSingleTap: handleSpeak,
-        onLongPress: handleLongPressReveal,
+        onSingleTapMiddle: handleSpeak,
+        onSingleTapLeft: handlePrev,
+        onSingleTapRight: handleNext,
+        onLongPressMiddle: handleLongPressReveal,
     });
 
     const inlineControls = (
@@ -1380,15 +1459,17 @@ function ImprovementDeck({
     }
 
     function handleLongPressReveal() {
-        setShowDetails(true);
+        setShowDetails(v => !v);
     }
 
     const gestureHandlers = useCardGestures({
         onSwipeNext: handleNext,
         onSwipePrev: handlePrev,
         onDoubleTap: handleToggleImprovement,
-        onSingleTap: handleSpeak,
-        onLongPress: handleLongPressReveal,
+        onSingleTapMiddle: handleSpeak,
+        onSingleTapLeft: handlePrev,
+        onSingleTapRight: handleNext,
+        onLongPressMiddle: handleLongPressReveal,
     });
 
     const inlineControls = (

@@ -33,6 +33,59 @@ function renderVowelDeck() {
     return render(<FlashcardDeck data={VOWELS} onBack={vi.fn()} />);
 }
 
+function setGestureSurfaceBounds(surface: HTMLElement) {
+    Object.defineProperty(surface, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({
+            x: 0,
+            y: 0,
+            left: 0,
+            top: 0,
+            right: 300,
+            bottom: 160,
+            width: 300,
+            height: 160,
+            toJSON: () => ({}),
+        }),
+    });
+}
+
+function singleTapAt(surface: HTMLElement, clientX: number, clientY = 80) {
+    fireEvent.mouseDown(surface, { clientX, clientY });
+    fireEvent.mouseUp(surface, { clientX, clientY });
+}
+
+function singleTapLeft(surface: HTMLElement) {
+    singleTapAt(surface, 30);
+}
+
+function singleTapRight(surface: HTMLElement) {
+    singleTapAt(surface, 270);
+}
+
+function doubleTapAt(surface: HTMLElement, clientX: number, clientY = 80) {
+    fireEvent.mouseDown(surface, { clientX, clientY });
+    fireEvent.mouseUp(surface, { clientX, clientY });
+    fireEvent.mouseDown(surface, { clientX: clientX + 2, clientY: clientY + 2 });
+    fireEvent.mouseUp(surface, { clientX: clientX + 2, clientY: clientY + 2 });
+}
+
+function doubleTapRight(surface: HTMLElement) {
+    doubleTapAt(surface, 270);
+}
+
+function longPressAt(surface: HTMLElement, clientX: number, ms = 500) {
+    fireEvent.mouseDown(surface, { clientX, clientY: 80 });
+    act(() => {
+        vi.advanceTimersByTime(ms);
+    });
+    fireEvent.mouseUp(surface, { clientX, clientY: 80 });
+}
+
+function longPressRight(surface: HTMLElement, ms = 500) {
+    longPressAt(surface, 270, ms);
+}
+
 function doubleTap(surface: HTMLElement) {
     fireEvent.mouseDown(surface, { clientX: 120, clientY: 80 });
     fireEvent.mouseUp(surface, { clientX: 120, clientY: 80 });
@@ -242,17 +295,60 @@ describe('<App /> home screen', () => {
     });
 
     it('adds and removes a card from Improvement Needed by double tap', () => {
-        const { getByText, getByTestId } = render(<App />);
+        vi.useFakeTimers();
+        try {
+            (speakThai as ReturnType<typeof vi.fn>).mockClear();
 
-        fireEvent.click(getByText('Script'));
-        fireEvent.click(getByText('Practice Consonants'));
+            const { getByText, getByTestId } = render(<App />);
 
-        const surface = getByTestId('card-gesture-surface');
-        doubleTap(surface);
-        expect(getByTestId('improvement-toast').textContent).toBe('added to improvement needed deck');
+            fireEvent.click(getByText('Script'));
+            fireEvent.click(getByText('Practice Consonants'));
 
-        doubleTap(surface);
-        expect(getByTestId('improvement-toast').textContent).toBe('removed from improvement needed deck');
+            const surface = getByTestId('card-gesture-surface');
+            doubleTap(surface);
+            expect(getByTestId('improvement-toast').textContent).toBe('added to improvement needed deck');
+
+            act(() => {
+                vi.advanceTimersByTime(500);
+            });
+            expect(speakThai).not.toHaveBeenCalled();
+
+            doubleTap(surface);
+            expect(getByTestId('improvement-toast').textContent).toBe('removed from improvement needed deck');
+
+            act(() => {
+                vi.advanceTimersByTime(500);
+            });
+            expect(speakThai).not.toHaveBeenCalled();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('does not toggle Improvement Needed on right-side double tap', () => {
+        vi.useFakeTimers();
+        try {
+            (speakThai as ReturnType<typeof vi.fn>).mockClear();
+
+            const { getByText, getByTestId, queryByTestId } = render(<App />);
+
+            fireEvent.click(getByText('Script'));
+            fireEvent.click(getByText('Practice Consonants'));
+
+            const surface = getByTestId('card-gesture-surface');
+            setGestureSurfaceBounds(surface);
+            doubleTapRight(surface);
+
+            act(() => {
+                vi.advanceTimersByTime(500);
+            });
+
+            expect(queryByTestId('improvement-toast')).toBeNull();
+            expect(speakThai).not.toHaveBeenCalled();
+            expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('does not show persistent double-tap helper text below cards', () => {
@@ -367,11 +463,36 @@ describe('<VocabularyDeck />', () => {
     it('shows solution after long-pressing the card', () => {
         vi.useFakeTimers();
         try {
+            (speakThai as ReturnType<typeof vi.fn>).mockClear();
             const { getByTestId } = renderVocabDeck();
             expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+
             longPress(getByTestId('card-gesture-surface'));
             expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
             expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
+
+            act(() => {
+                vi.advanceTimersByTime(500);
+            });
+            expect(speakThai).not.toHaveBeenCalled();
+
+            longPress(getByTestId('card-gesture-surface'));
+            expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('does not toggle solution on right-side long press', () => {
+        vi.useFakeTimers();
+        try {
+            const { getByTestId } = renderVocabDeck();
+            const surface = getByTestId('card-gesture-surface');
+            setGestureSurfaceBounds(surface);
+
+            expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+            longPressRight(surface);
+            expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
         } finally {
             vi.useRealTimers();
         }
@@ -762,8 +883,9 @@ describe('Play button', () => {
             const { getByTestId } = renderDeck();
             singleTap(getByTestId('card-gesture-surface'));
             act(() => {
-                vi.advanceTimersByTime(350);
+                vi.advanceTimersByTime(500);
             });
+            expect((speakThai as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
             const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
             expect(CONSONANTS.map(c => c.thaiName)).toContain(text);
         } finally {
@@ -797,6 +919,15 @@ describe('Next button', () => {
         swipeLeft(getByTestId('card-gesture-surface'));
         expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(false);
     });
+
+    it('advances the card on right-side single tap gesture', () => {
+        const { getByTestId } = renderDeck();
+        const surface = getByTestId('card-gesture-surface');
+        setGestureSurfaceBounds(surface);
+        expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(true);
+        singleTapRight(surface);
+        expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(false);
+    });
 });
 
 // ── 6. Previous button ───────────────────────────────────────────────────────
@@ -823,6 +954,18 @@ describe('Previous button', () => {
         fireEvent.click(getByText('Next'));
         expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(false);
         swipeRight(getByTestId('card-gesture-surface'));
+        expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(true);
+    });
+
+    it('goes back on left-side single tap gesture', () => {
+        const { getByTestId } = renderDeck();
+        const surface = getByTestId('card-gesture-surface');
+        setGestureSurfaceBounds(surface);
+
+        singleTapRight(surface);
+        expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(false);
+
+        singleTapLeft(surface);
         expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(true);
     });
 });

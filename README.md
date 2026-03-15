@@ -18,10 +18,12 @@
 ---
 
 ```text
-+--------------------------------------------------------------------------+
-| SWIPE LEFT -> NEXT | SWIPE RIGHT -> PREVIOUS | TAP -> LISTEN            |
-| LONG PRESS -> REVEAL | DOUBLE TAP -> IMPROVEMENT NEEDED                 |
-+--------------------------------------------------------------------------+
++----------------------------------------------------------------------------------+
+| SWIPE LEFT -> NEXT | SWIPE RIGHT -> PREVIOUS                                     |
+| TAP LEFT -> PREVIOUS | TAP RIGHT -> NEXT                                         |
+| TAP CENTER -> LISTEN | LONG PRESS CENTER -> SHOW/HIDE                            |
+| DOUBLE TAP CENTER -> IMPROVEMENT NEEDED                                          |
++----------------------------------------------------------------------------------+
 ```
 
 ## Live Vibe
@@ -69,9 +71,11 @@ npm run dev
 2. Interact with cards using gestures.
 - Swipe left: next card
 - Swipe right: previous card
-- Single tap: play audio
-- Long press: reveal details/answer
-- Double tap: add/remove from Improvement Needed
+- Single tap left side: previous card
+- Single tap right side: next card
+- Single tap center: play audio
+- Long press center: show or hide details/answer
+- Double tap center: add/remove from Improvement Needed
 
 3. Use in-card controls below the centered text block.
 - First button: ▶ Listen

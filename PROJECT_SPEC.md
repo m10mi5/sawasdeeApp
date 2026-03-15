@@ -387,7 +387,7 @@ export function speakThai(text: string, audioFile?: string): void
 | `ExerciseDeck` | Category-first exercise deck with direction toggle, swipe, double-tap improvement toggle |
 | `ImprovementDeck` | New replacement for Pronunciation mode; replays user-selected cards from all decks |
 | `Card`, `VocabCard`, `ExerciseCard` | Stateless renderers for script, vocab, and exercise card layouts |
-| `useCardGestures` | Shared gesture hook (mouse/touch): swipe left/right, double-tap detection |
+| `useCardGestures` | Shared gesture hook (mouse/touch): swipe plus zone-aware tap detection |
 | Cache helpers | `loadImprovementCache`, `saveImprovementCache` (versioned localStorage payload) |
 
 ### App Modes
@@ -429,9 +429,11 @@ Each active card is wrapped in `.gesture-surface` and supports:
 
 - **Swipe left**: next card
 - **Swipe right**: previous card
-- **Single tap**: play card audio / TTS
-- **Long press**: reveal answer/details
-- **Double tap**: toggle membership in Improvement Needed
+- **Single tap (left zone)**: previous card
+- **Single tap (right zone)**: next card
+- **Single tap (middle zone)**: play card audio / TTS
+- **Long press (middle zone)**: show/hide answer/details
+- **Double tap (middle zone)**: toggle membership in Improvement Needed
 
 Swipe completion listens for release events globally (`mouseup` / `touchend`), so navigation still triggers even when the finger/mouse release occurs slightly outside the card.
 
@@ -570,6 +572,6 @@ npm run preview
 16. **Category selection pattern** — VocabularyDeck and ExerciseDeck both use the same category selection pattern: `selectedCategory` state starts `null`, `deck` starts empty, a category grid screen is shown first, `startDeck(cat)` filters the data array and shuffles it, and "Back to Categories" returns to the selection screen. This keeps both deck components structurally identical.
 17. **CSS consistency for selection screens** — All category selection screens and the home menu use the same CSS classes: `.category-grid` + `.category-button` (width: 100%) for the grid, and `.menu-button` for full-width action buttons. Both `.menu-button` and `.category-grid` use `width: clamp(220px, 60vw, 320px)` for responsive sizing that is proportionally narrower than cards (`calc(100vw - 32px)`, max 400px).
 18. **Deck Complete button wrapper** — All deck types (including Improvement Needed) wrap completion screen buttons in a `.complete-buttons` div (flex column, gap 10px) for consistent spacing.
-19. **Gesture-first review flow** — active cards support swipe left/right navigation and double-tap selection to reduce button-only interaction friction on mobile.
+19. **Gesture-first review flow** — active cards support swipe navigation plus zone-based taps (left/right single-tap navigation, middle single-tap audio, middle double-tap selection) to reduce button-only interaction friction on mobile.
 20. **Pronunciation replaced by review mode** — the former placeholder mode was replaced with a functional Improvement Needed deck that can replay mixed card types.
 21. **Text hygiene at source and render time** — English/Latin-facing text is normalized to lowercase, cleaned of trailing full stops, and stripped of accidental Thai-block characters.
