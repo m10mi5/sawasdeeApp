@@ -32,6 +32,7 @@ thaiscript/
 ├── vitest.config.ts    # Vitest config (jsdom environment, setup file)
 ├── tsconfig.json       # TypeScript config
 ├── package.json        # Dependencies and scripts
+├── README.md           # User-facing setup and usage instructions
 ├── PROJECT_SPEC.md     # This file
 ├── .github/
 │   ├── copilot-instructions.md
