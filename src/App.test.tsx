@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import { CONSONANTS } from './consonants';
 import { TONAL_RULES } from './tonalRules';
 import { VOWELS } from './vowels';
 import { VOCABULARY, Grammar } from './vocabulary';
-import { EXERCISES, EXERCISE_CATEGORIES } from './speakingChallenges';
+import { EXERCISES, EXERCISE_CATEGORIES } from './excercices';
 import { VOCABULARY_CATEGORIES } from './vocabulary';
 import { autoFitStyle, shuffleArray } from './utils';
 import App, { FlashcardDeck, VocabularyDeck, ExerciseDeck } from './App';
@@ -16,8 +16,12 @@ vi.mock('./speech', () => ({
 import { speakThai } from './speech';
 
 // jsdom normalises inline style hex values to rgb()
-const CLASS_COLORS = { Mid: 'rgb(46, 125, 50)', High: 'rgb(198, 40, 40)', Low: 'rgb(21, 101, 192)' } as const;
-const LENGTH_COLORS = { Short: 'rgb(21, 101, 192)', Long: 'rgb(46, 125, 50)', Diphthong: 'rgb(230, 81, 0)' } as const;
+const CLASS_COLORS = { mid: 'rgb(46, 125, 50)', high: 'rgb(198, 40, 40)', low: 'rgb(21, 101, 192)' } as const;
+const LENGTH_COLORS = { short: 'rgb(21, 101, 192)', long: 'rgb(46, 125, 50)', diphthong: 'rgb(230, 81, 0)' } as const;
+
+beforeEach(() => {
+    window.localStorage.clear();
+});
 
 /** Render a consonant deck (convenience wrapper). */
 function renderDeck() {
@@ -27,6 +31,36 @@ function renderDeck() {
 /** Render a vowel deck (convenience wrapper). */
 function renderVowelDeck() {
     return render(<FlashcardDeck data={VOWELS} onBack={vi.fn()} />);
+}
+
+function doubleTap(surface: HTMLElement) {
+    fireEvent.mouseDown(surface, { clientX: 120, clientY: 80 });
+    fireEvent.mouseUp(surface, { clientX: 120, clientY: 80 });
+    fireEvent.mouseDown(surface, { clientX: 122, clientY: 82 });
+    fireEvent.mouseUp(surface, { clientX: 122, clientY: 82 });
+}
+
+function singleTap(surface: HTMLElement) {
+    fireEvent.mouseDown(surface, { clientX: 120, clientY: 80 });
+    fireEvent.mouseUp(surface, { clientX: 120, clientY: 80 });
+}
+
+function longPress(surface: HTMLElement, ms = 500) {
+    fireEvent.mouseDown(surface, { clientX: 120, clientY: 80 });
+    act(() => {
+        vi.advanceTimersByTime(ms);
+    });
+    fireEvent.mouseUp(surface, { clientX: 120, clientY: 80 });
+}
+
+function swipeLeft(surface: HTMLElement) {
+    fireEvent.mouseDown(surface, { clientX: 240, clientY: 80 });
+    fireEvent.mouseUp(surface, { clientX: 40, clientY: 84 });
+}
+
+function swipeRight(surface: HTMLElement) {
+    fireEvent.mouseDown(surface, { clientX: 40, clientY: 80 });
+    fireEvent.mouseUp(surface, { clientX: 240, clientY: 84 });
 }
 
 // ── 1. shuffleArray() ─────────────────────────────────────────────────────────
@@ -74,6 +108,32 @@ describe('autoFitStyle()', () => {
     });
 });
 
+describe('Data normalisation', () => {
+    const THAI_BLOCK_REGEX = /[\u0E00-\u0E7F]/;
+
+    it('normalises vocabulary English and Latin text', () => {
+        VOCABULARY.forEach(item => {
+            expect(item.english).toBe(item.english.toLowerCase());
+            expect(item.latinised).toBe(item.latinised.toLowerCase());
+            expect(item.english.endsWith('.')).toBe(false);
+            expect(item.latinised.endsWith('.')).toBe(false);
+            expect(THAI_BLOCK_REGEX.test(item.english)).toBe(false);
+            expect(THAI_BLOCK_REGEX.test(item.latinised)).toBe(false);
+        });
+    });
+
+    it('normalises exercise prompt and Latin text', () => {
+        EXERCISES.forEach(item => {
+            expect(item.prompt).toBe(item.prompt.toLowerCase());
+            expect(item.latinised).toBe(item.latinised.toLowerCase());
+            expect(item.prompt.endsWith('.')).toBe(false);
+            expect(item.latinised.endsWith('.')).toBe(false);
+            expect(THAI_BLOCK_REGEX.test(item.prompt)).toBe(false);
+            expect(THAI_BLOCK_REGEX.test(item.latinised)).toBe(false);
+        });
+    });
+});
+
 // ── 2. <App /> home screen ────────────────────────────────────────────────────
 
 describe('<App /> home screen', () => {
@@ -82,7 +142,7 @@ describe('<App /> home screen', () => {
         expect(getByText('Script')).toBeTruthy();
         expect(getByText('Vocabulary')).toBeTruthy();
         expect(getByText('Exercises')).toBeTruthy();
-        expect(getByText('Pronunciation')).toBeTruthy();
+        expect(getByText('Improvement Needed')).toBeTruthy();
     });
 
     it('navigates to the script deck menu when "Script" is pressed', () => {
@@ -104,7 +164,7 @@ describe('<App /> home screen', () => {
         const { getByText } = render(<App />);
         fireEvent.click(getByText('Script'));
         fireEvent.click(getByText('Practice Tone Rules'));
-        expect(getByText(/Class \+/)).toBeTruthy();
+        expect(getByText(/class \+/)).toBeTruthy();
     });
 
     it('navigates to the vowels deck via Script', () => {
@@ -167,18 +227,90 @@ describe('<App /> home screen', () => {
         expect(getByText('Exercises')).toBeTruthy();
     });
 
-    it('shows placeholder for Pronunciation', () => {
+    it('opens Improvement Needed mode', () => {
         const { getByText } = render(<App />);
-        fireEvent.click(getByText('Pronunciation'));
-        expect(getByText('Coming soon')).toBeTruthy();
+        fireEvent.click(getByText('Improvement Needed'));
+        expect(getByText('No cards yet. Double tap any card to add it here.')).toBeTruthy();
     });
 
-    it('returns from placeholder to home via Back', () => {
+    it('returns from Improvement Needed mode to home via Back', () => {
         const { getByText } = render(<App />);
-        fireEvent.click(getByText('Pronunciation'));
+        fireEvent.click(getByText('Improvement Needed'));
         fireEvent.click(getByText('Back'));
         expect(getByText('Script')).toBeTruthy();
-        expect(getByText('Pronunciation')).toBeTruthy();
+        expect(getByText('Improvement Needed')).toBeTruthy();
+    });
+
+    it('adds and removes a card from Improvement Needed by double tap', () => {
+        const { getByText, getByTestId } = render(<App />);
+
+        fireEvent.click(getByText('Script'));
+        fireEvent.click(getByText('Practice Consonants'));
+
+        const surface = getByTestId('card-gesture-surface');
+        doubleTap(surface);
+        expect(getByTestId('improvement-toast').textContent).toBe('added to improvement needed deck');
+
+        doubleTap(surface);
+        expect(getByTestId('improvement-toast').textContent).toBe('removed from improvement needed deck');
+    });
+
+    it('does not show persistent double-tap helper text below cards', () => {
+        const { getByText, queryByText } = render(<App />);
+
+        fireEvent.click(getByText('Script'));
+        fireEvent.click(getByText('Practice Consonants'));
+
+        expect(queryByText('double tap card to add to improvement needed')).toBeNull();
+        expect(queryByText('in improvement needed (double tap to remove)')).toBeNull();
+    });
+
+    it('auto-hides improvement toast after 1 second', () => {
+        vi.useFakeTimers();
+        try {
+            const { getByText, getByTestId, queryByTestId } = render(<App />);
+
+            fireEvent.click(getByText('Script'));
+            fireEvent.click(getByText('Practice Consonants'));
+            doubleTap(getByTestId('card-gesture-surface'));
+
+            expect(getByTestId('improvement-toast')).toBeTruthy();
+
+            act(() => {
+                vi.advanceTimersByTime(1000);
+            });
+
+            expect(queryByTestId('improvement-toast')).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('shows selected cards inside Improvement Needed mode', () => {
+        const { getByText, getByTestId } = render(<App />);
+
+        fireEvent.click(getByText('Script'));
+        fireEvent.click(getByText('Practice Consonants'));
+        doubleTap(getByTestId('card-gesture-surface'));
+
+        fireEvent.click(getByText('Back to Menu'));
+        fireEvent.click(getByText('Back'));
+
+        fireEvent.click(getByText('Improvement Needed'));
+        expect(getByText('Show Details')).toBeTruthy();
+    });
+
+    it('keeps Improvement Needed cards in cache across remount', () => {
+        const first = render(<App />);
+
+        fireEvent.click(first.getByText('Script'));
+        fireEvent.click(first.getByText('Practice Consonants'));
+        doubleTap(first.getByTestId('card-gesture-surface'));
+        first.unmount();
+
+        const second = render(<App />);
+        fireEvent.click(second.getByText('Improvement Needed'));
+        expect(second.queryByText('No cards yet. Double tap any card to add it here.')).toBeNull();
     });
 });
 
@@ -230,6 +362,19 @@ describe('<VocabularyDeck />', () => {
         fireEvent.click(getByText('Show Solution'));
         expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
         expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
+    });
+
+    it('shows solution after long-pressing the card', () => {
+        vi.useFakeTimers();
+        try {
+            const { getByTestId } = renderVocabDeck();
+            expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(true);
+            longPress(getByTestId('card-gesture-surface'));
+            expect(getByTestId('vocab-solution-primary').classList.contains('hidden')).toBe(false);
+            expect(getByTestId('vocab-solution-secondary').classList.contains('hidden')).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('hides solution again after pressing "Hide Solution"', () => {
@@ -376,7 +521,7 @@ describe('<ExerciseDeck />', () => {
     it('shows a category label', () => {
         const { getByTestId } = renderExerciseDeck();
         const cat = getByTestId('speaking-category');
-        const allLabels = EXERCISE_CATEGORIES.map(c => c.label);
+        const allLabels = EXERCISE_CATEGORIES.map(c => c.label.toLowerCase());
         expect(allLabels).toContain(cat.textContent);
     });
 
@@ -533,10 +678,10 @@ describe('<FlashcardDeck /> rendering', () => {
         expect(getByText(/^[\u0E00-\u0E7F]$/)).toBeTruthy();
     });
 
-    it('shows a class label (Mid, High, or Low)', () => {
+    it('shows a class label (mid, high, or low)', () => {
         const { getByText } = renderDeck();
         fireEvent.click(getByText('Show Details'));
-        expect(getByText(/^(Mid|High|Low)$/)).toBeTruthy();
+        expect(getByText(/^(mid|high|low)$/)).toBeTruthy();
     });
 
     it('class label colour matches the class-to-hex mapping', () => {
@@ -556,11 +701,11 @@ describe('<FlashcardDeck /> rendering', () => {
 // ── 3b. Vowel deck rendering ───────────────────────────────────────────────────────────
 
 describe('Vowel deck rendering', () => {
-    it('shows a length label (Short, Long, or Diphthong)', () => {
+    it('shows a length label (short, long, or diphthong)', () => {
         const { getByTestId, getByText } = renderVowelDeck();
         fireEvent.click(getByText('Show Details'));
         const label = getByTestId('vowel-length-label');
-        expect(['Short', 'Long', 'Diphthong']).toContain(label.textContent);
+        expect(['short', 'long', 'diphthong']).toContain(label.textContent);
     });
 
     it('shows the vowel name label', () => {
@@ -610,6 +755,21 @@ describe('Play button', () => {
         const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
         expect(VOWELS.map(v => v.symbol)).toContain(text);
     });
+
+    it('speaks on single tap of the card surface', () => {
+        vi.useFakeTimers();
+        try {
+            const { getByTestId } = renderDeck();
+            singleTap(getByTestId('card-gesture-surface'));
+            act(() => {
+                vi.advanceTimersByTime(350);
+            });
+            const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
+            expect(CONSONANTS.map(c => c.thaiName)).toContain(text);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
 });
 
 // ── 5. Next button ───────────────────────────────────────────────────────────
@@ -630,6 +790,13 @@ describe('Next button', () => {
         }
         expect(getByText('Deck Complete!')).toBeTruthy();
     });
+
+    it('advances the card on left swipe gesture', () => {
+        const { getByTestId } = renderDeck();
+        expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(true);
+        swipeLeft(getByTestId('card-gesture-surface'));
+        expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(false);
+    });
 });
 
 // ── 6. Previous button ───────────────────────────────────────────────────────
@@ -649,6 +816,14 @@ describe('Previous button', () => {
         fireEvent.click(getByText('Previous'));
         const back = getByText(/^[\u0E00-\u0E7F]$/).textContent;
         expect(back).toBe(first);
+    });
+
+    it('goes back on right swipe gesture', () => {
+        const { getByText, getByTestId } = renderDeck();
+        fireEvent.click(getByText('Next'));
+        expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(false);
+        swipeRight(getByTestId('card-gesture-surface'));
+        expect((getByTestId('prev-btn') as HTMLButtonElement).disabled).toBe(true);
     });
 });
 
