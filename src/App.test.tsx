@@ -3,8 +3,8 @@ import { render, fireEvent, act } from '@testing-library/react';
 import { CONSONANTS } from './consonants';
 import { TONAL_RULES } from './tonalRules';
 import { VOWELS } from './vowels';
-import { VOCABULARY, Grammar } from './vocabulary';
-import { EXERCISES, EXERCISE_CATEGORIES } from './excercices';
+import { VOCABULARY, Grammar, type VocabItem } from './vocabulary';
+import { EXERCISES, EXERCISE_CATEGORIES, type Exercise } from './excercices';
 import { VOCABULARY_CATEGORIES } from './vocabulary';
 import { autoFitStyle, shuffleArray } from './utils';
 import App, { FlashcardDeck, VocabularyDeck, ExerciseDeck } from './App';
@@ -115,6 +115,36 @@ function swipeRight(surface: HTMLElement) {
     fireEvent.mouseDown(surface, { clientX: 40, clientY: 80 });
     fireEvent.mouseUp(surface, { clientX: 240, clientY: 84 });
 }
+
+function toDeckKeySegment(value: string): string {
+    return value
+        .replace(/\|/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLocaleLowerCase();
+}
+
+function getVocabularyDeckKey(item: VocabItem): string {
+    return [
+        'vocabulary-deck',
+        toDeckKeySegment(item.thai),
+        toDeckKeySegment(item.english),
+        toDeckKeySegment(item.latinised),
+        toDeckKeySegment(item.grammar),
+    ].join('|');
+}
+
+function getExerciseDeckKey(item: Exercise): string {
+    return [
+        'exercise-deck',
+        toDeckKeySegment(item.thai),
+        toDeckKeySegment(item.prompt),
+        toDeckKeySegment(item.latinised),
+    ].join('|');
+}
+
+const UNIQUE_VOCABULARY_CARD_COUNT = new Set(VOCABULARY.map(getVocabularyDeckKey)).size;
+const UNIQUE_EXERCISE_CARD_COUNT = new Set(EXERCISES.map(getExerciseDeckKey)).size;
 
 // ── 1. shuffleArray() ─────────────────────────────────────────────────────────
 
@@ -533,7 +563,7 @@ describe('<VocabularyDeck />', () => {
 
     it('shows Deck Complete after going through all cards', () => {
         const { getByText } = renderVocabDeck();
-        for (let i = 0; i < VOCABULARY.length; i++) {
+        for (let i = 0; i < UNIQUE_VOCABULARY_CARD_COUNT; i++) {
             fireEvent.click(getByText('Next'));
         }
         expect(getByText('Deck Complete!')).toBeTruthy();
@@ -708,7 +738,7 @@ describe('<ExerciseDeck />', () => {
 
     it('shows Deck Complete after going through all cards', () => {
         const { getByText } = renderExerciseDeck();
-        for (let i = 0; i < EXERCISES.length; i++) {
+        for (let i = 0; i < UNIQUE_EXERCISE_CARD_COUNT; i++) {
             fireEvent.click(getByText('Next'));
         }
         expect(getByText('Deck Complete!')).toBeTruthy();
@@ -797,6 +827,14 @@ describe('<FlashcardDeck /> rendering', () => {
     it('shows a Thai character on first render', () => {
         const { getByText } = renderDeck();
         expect(getByText(/^[\u0E00-\u0E7F]$/)).toBeTruthy();
+    });
+
+    it('deduplicates repeated cards before rendering the deck', () => {
+        const duplicateDeck = [CONSONANTS[0], CONSONANTS[0], CONSONANTS[1]];
+        const { getByText } = render(<FlashcardDeck data={duplicateDeck} onBack={vi.fn()} />);
+        fireEvent.click(getByText('Next'));
+        fireEvent.click(getByText('Next'));
+        expect(getByText('Deck Complete!')).toBeTruthy();
     });
 
     it('shows a class label (mid, high, or low)', () => {

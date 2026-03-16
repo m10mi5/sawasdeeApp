@@ -388,6 +388,7 @@ export function speakThai(text: string, audioFile?: string): void
 | `ImprovementDeck` | New replacement for Pronunciation mode; replays user-selected cards from all decks |
 | `Card`, `VocabCard`, `ExerciseCard` | Stateless renderers for script, vocab, and exercise card layouts |
 | `useCardGestures` | Shared gesture hook (mouse/touch): swipe plus zone-aware tap detection |
+| Deck key helpers | `getVocabularyDeckKey`, `getExerciseDeckKey`, and `uniqueByStableKey` ensure each deck run contains each logical card only once before shuffling |
 | Cache helpers | `loadImprovementCache`, `saveImprovementCache` (versioned localStorage payload) |
 
 ### App Modes
@@ -421,7 +422,7 @@ interface ImprovementCachePayload {
 - Versioned invalidation via `IMPROVEMENT_CACHE_VERSION`
 - On boot: load, parse, version-check, and filter unknown IDs
 - On updates: persist through `saveImprovementCache`
-- Manual invalidation: **Clear List / Clear Cache** actions in `ImprovementDeck`
+- Manual invalidation: **Clear List** action in `ImprovementDeck`
 
 ### Gesture UX (All Decks)
 
@@ -463,6 +464,7 @@ This is applied directly in the literal `english`/`latinised` values in `src/voc
 
 - `FlashcardDeck`, `VocabularyDeck`, and `ExerciseDeck` accept optional improvement callbacks so direct test renders remain simple.
 - `VocabularyDeck` and `ExerciseDeck` keep category-selection-first flow unchanged (`deck.length === 0` => chooser screen).
+- Script, vocabulary, and exercise decks deduplicate by stable content keys before shuffling, so repeated source rows do not appear multiple times in a single run.
 - `ImprovementDeck` can render mixed card types (`script`, `vocabulary`, `exercise`) in one shuffled deck and preserves listen/toggle/navigation controls.
 - A fixed bottom toast (`.toast-notification`) confirms add/remove/clear operations and auto-hides after 1 second.
 - Add/remove toasts use generic copy (`added to improvement needed deck` / `removed from improvement needed deck`) rather than card titles.
@@ -480,7 +482,7 @@ This is applied directly in the literal `english`/`latinised` values in `src/voc
 
 ### Current Scope
 
-`src/App.test.tsx` contains **97 passing tests**.
+`src/App.test.tsx` contains **102 passing tests**.
 
 Main coverage areas:
 
@@ -493,6 +495,7 @@ Main coverage areas:
 7. Exercise deck flow (category, direction toggle, reveal/hide, play audio, completion)
 8. Script deck rendering and controls (details, colors, navigation, restart)
 9. Swipe gesture navigation (left/right) in flashcard flow
+10. Deck deduplication behavior (duplicate source rows are collapsed before deck completion)
 
 ### Core Assertions Added In This Iteration
 
@@ -501,6 +504,7 @@ Main coverage areas:
 - Selected cards appear in Improvement Needed mode
 - Improvement selection survives unmount/remount using cache
 - Lowercased class/length rendering remains color-mapped correctly
+- Deck completion reflects unique cards only (duplicates are removed before shuffle)
 
 ---
 
@@ -569,7 +573,7 @@ npm run preview
 13. **Web Speech API TTS** — `speakThai()` wraps `SpeechSynthesisUtterance` with `lang = 'th'`; no audio asset files are needed. Thai voice availability depends on the user's OS/browser.
 14. **Vowel deck mirrors consonant card** — `Vowel` cards reuse the same CSS classes as consonant cards; `LENGTH_COLORS` maps Short/Long/Diphthong to the same blue/green/orange palette as CLASS_COLORS. The `symbol` field always includes ก as the base consonant so the vowel form is visible and immediately pronounceable by TTS.
 15. **GitHub Actions CI/CD** — every push to `main` runs typecheck + tests, then builds and deploys to GitHub Pages. No manual deployment step.
-16. **Category selection pattern** — VocabularyDeck and ExerciseDeck both use the same category selection pattern: `selectedCategory` state starts `null`, `deck` starts empty, a category grid screen is shown first, `startDeck(cat)` filters the data array and shuffles it, and "Back to Categories" returns to the selection screen. This keeps both deck components structurally identical.
+16. **Category selection pattern** — VocabularyDeck and ExerciseDeck both use the same category selection pattern: `selectedCategory` state starts `null`, `deck` starts empty, a category grid screen is shown first, `startDeck(cat)` filters the data array, deduplicates by stable display key, and shuffles the unique cards; "Back to Categories" returns to the selection screen. This keeps both deck components structurally identical while preventing repeated cards in a single run.
 17. **CSS consistency for selection screens** — All category selection screens and the home menu use the same CSS classes: `.category-grid` + `.category-button` (width: 100%) for the grid, and `.menu-button` for full-width action buttons. Both `.menu-button` and `.category-grid` use `width: clamp(220px, 60vw, 320px)` for responsive sizing that is proportionally narrower than cards (`calc(100vw - 32px)`, max 400px).
 18. **Deck Complete button wrapper** — All deck types (including Improvement Needed) wrap completion screen buttons in a `.complete-buttons` div (flex column, gap 10px) for consistent spacing.
 19. **Gesture-first review flow** — active cards support swipe navigation plus zone-based taps (left/right single-tap navigation, middle single-tap audio, middle double-tap selection) to reduce button-only interaction friction on mobile.

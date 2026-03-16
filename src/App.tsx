@@ -93,6 +93,41 @@ function getExerciseId(item: Exercise): string {
     ].join('|');
 }
 
+function getVocabularyDeckKey(item: VocabItem): string {
+    return [
+        'vocabulary-deck',
+        toKeySegment(item.thai),
+        toKeySegment(item.english),
+        toKeySegment(item.latinised),
+        toKeySegment(item.grammar),
+    ].join('|');
+}
+
+function getExerciseDeckKey(item: Exercise): string {
+    return [
+        'exercise-deck',
+        toKeySegment(item.thai),
+        toKeySegment(item.prompt),
+        toKeySegment(item.latinised),
+    ].join('|');
+}
+
+function uniqueByStableKey<T>(items: T[], getKey: (item: T) => string): T[] {
+    const seen = new Set<string>();
+    const uniqueItems: T[] = [];
+
+    for (const item of items) {
+        const key = getKey(item);
+        if (seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        uniqueItems.push(item);
+    }
+
+    return uniqueItems;
+}
+
 function getFlashcardLabel(item: FlashcardItem): string {
     if ('character' in item) {
         return item.thaiName;
@@ -591,7 +626,8 @@ export function FlashcardDeck({
     isImprovementSelected,
     onToggleImprovement,
 }: FlashcardDeckProps) {
-    const [deck, setDeck] = useState<FlashcardItem[]>(() => shuffleArray(data));
+    const uniqueData = useMemo(() => uniqueByStableKey(data, getFlashcardId), [data]);
+    const [deck, setDeck] = useState<FlashcardItem[]>(() => shuffleArray(uniqueData));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showDetails, setShowDetails] = useState(false);
 
@@ -600,13 +636,13 @@ export function FlashcardDeck({
     const currentCardId = currentCard ? getFlashcardId(currentCard) : null;
 
     function handleRestart() {
-        setDeck(shuffleArray(data));
+        setDeck(shuffleArray(uniqueData));
         setCurrentIndex(0);
         setShowDetails(false);
     }
 
     function handleShuffle() {
-        setDeck(shuffleArray(data));
+        setDeck(shuffleArray(uniqueData));
         setCurrentIndex(0);
         setShowDetails(false);
     }
@@ -833,8 +869,9 @@ export function VocabularyDeck({
         const items = cat
             ? VOCABULARY.filter(v => v.category === cat)
             : VOCABULARY;
+        const uniqueItems = uniqueByStableKey(items, getVocabularyDeckKey);
         setSelectedCategory(cat);
-        setDeck(shuffleArray(items));
+        setDeck(shuffleArray(uniqueItems));
         setCurrentIndex(0);
         setShowAnswer(false);
     }
@@ -1151,8 +1188,9 @@ export function ExerciseDeck({
         const items = cat
             ? EXERCISES.filter(c => c.category === cat)
             : EXERCISES;
+        const uniqueItems = uniqueByStableKey(items, getExerciseDeckKey);
         setSelectedCategory(cat);
-        setDeck(shuffleArray(items));
+        setDeck(shuffleArray(uniqueItems));
         setCurrentIndex(0);
         setShowAnswer(false);
     }
@@ -1542,9 +1580,6 @@ function ImprovementDeck({
                     <button className="button menu-button" onClick={onBack}>
                         Back
                     </button>
-                    <button className="button menu-button back-button" onClick={onClear}>
-                        Clear Cache
-                    </button>
                 </div>
             </div>
         );
@@ -1765,9 +1800,9 @@ export default function App() {
         });
     }
 
-    function handleClearImprovementCache() {
+    function handleClearImprovementList() {
         setImprovementIds(new Set());
-        setNotification('improvement needed cache cleared');
+        setNotification('improvement needed list cleared');
     }
 
     const screen = (() => {
@@ -1806,7 +1841,7 @@ export default function App() {
                 <ImprovementDeck
                     cards={improvementCards}
                     onBack={() => setMode('HOME')}
-                    onClear={handleClearImprovementCache}
+                    onClear={handleClearImprovementList}
                     isImprovementSelected={isImprovementSelected}
                     onToggleImprovement={handleToggleImprovement}
                 />
