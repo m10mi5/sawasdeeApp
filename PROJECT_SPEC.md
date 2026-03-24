@@ -381,12 +381,13 @@ export function speakThai(text: string, audioFile?: string): void
 | Component / Function | Role |
 |---|---|
 | `App` | Root screen router + cache-backed improvement selection state + toast notification rendering |
-| `ScriptScreen` | Script menu and dispatch to consonant/vowel/tonal `FlashcardDeck` |
+| `ScriptScreen` | Script menu and dispatch to consonant/vowel/tonal `FlashcardDeck` and `WritingDeck` |
 | `FlashcardDeck` | Script card deck with swipe navigation, double-tap improvement toggle, audio, detail toggle |
 | `VocabularyDeck` | Category-first vocab deck with direction toggle, swipe, double-tap improvement toggle |
 | `ExerciseDeck` | Category-first exercise deck with direction toggle, swipe, double-tap improvement toggle |
+| `WritingDeck` | Category-first writing practice deck using vocabulary items; shows English, user types Thai, show/hide answer |
 | `ImprovementDeck` | New replacement for Pronunciation mode; replays user-selected cards from all decks |
-| `Card`, `VocabCard`, `ExerciseCard` | Stateless renderers for script, vocab, and exercise card layouts |
+| `Card`, `VocabCard`, `ExerciseCard`, `WritingCard` | Stateless renderers for script, vocab, exercise, and writing card layouts |
 | `useCardGestures` | Shared gesture hook (mouse/touch): swipe plus zone-aware tap detection |
 | Deck key helpers | `getVocabularyDeckKey`, `getExerciseDeckKey`, and `uniqueByStableKey` ensure each deck run contains each logical card only once before shuffling |
 | Cache helpers | `loadImprovementCache`, `saveImprovementCache` (versioned localStorage payload) |
@@ -466,6 +467,7 @@ This is applied directly in the literal `english`/`latinised` values in `src/voc
 - `VocabularyDeck` and `ExerciseDeck` keep category-selection-first flow unchanged (`deck.length === 0` => chooser screen).
 - Script, vocabulary, and exercise decks deduplicate by stable content keys before shuffling, so repeated source rows do not appear multiple times in a single run.
 - `ImprovementDeck` can render mixed card types (`script`, `vocabulary`, `exercise`) in one shuffled deck and preserves listen/toggle/navigation controls.
+- `WritingDeck` uses vocabulary items for writing practice. A prompt mode toggle switches between English and latinised Thai as the prompt text. The user types Thai in a text input, and can show/hide the correct Thai script plus the alternate text (latinised or English, whichever is not the prompt). Categories match vocabulary categories. Items are deduplicated by a stable `writing-deck` key before shuffling.
 - A fixed bottom toast (`.toast-notification`) confirms add/remove/clear operations and auto-hides after 1 second.
 - Add/remove toasts use generic copy (`added to improvement needed deck` / `removed from improvement needed deck`) rather than card titles.
 
@@ -482,7 +484,7 @@ This is applied directly in the literal `english`/`latinised` values in `src/voc
 
 ### Current Scope
 
-`src/App.test.tsx` contains **102 passing tests**.
+`src/App.test.tsx` contains **123 passing tests**.
 
 Main coverage areas:
 
@@ -496,6 +498,7 @@ Main coverage areas:
 8. Script deck rendering and controls (details, colors, navigation, restart)
 9. Swipe gesture navigation (left/right) in flashcard flow
 10. Deck deduplication behavior (duplicate source rows are collapsed before deck completion)
+11. Writing deck flow (category, show/hide answer, text input, play audio, navigation, completion)
 
 ### Core Assertions Added In This Iteration
 
@@ -505,6 +508,8 @@ Main coverage areas:
 - Improvement selection survives unmount/remount using cache
 - Lowercased class/length rendering remains color-mapped correctly
 - Deck completion reflects unique cards only (duplicates are removed before shuffle)
+- Writing deck shows English text, accepts Thai input, reveals correct answer with show/hide toggle
+- Writing deck accessible via Script menu, supports category filtering and navigation
 
 ---
 

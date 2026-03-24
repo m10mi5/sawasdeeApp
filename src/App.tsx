@@ -103,6 +103,16 @@ function getVocabularyDeckKey(item: VocabItem): string {
     ].join('|');
 }
 
+function getWritingDeckKey(item: VocabItem): string {
+    return [
+        'writing-deck',
+        toKeySegment(item.thai),
+        toKeySegment(item.english),
+        toKeySegment(item.latinised),
+        toKeySegment(item.grammar),
+    ].join('|');
+}
+
 function getExerciseDeckKey(item: Exercise): string {
     return [
         'exercise-deck',
@@ -1662,9 +1672,324 @@ function ImprovementDeck({
     );
 }
 
+// ─── Writing card ────────────────────────────────────────────────────────────
+
+export type WritingPromptMode = 'english' | 'latinised';
+
+interface WritingCardProps {
+    item: VocabItem;
+    showAnswer: boolean;
+    promptMode: WritingPromptMode;
+    userInput: string;
+    onInputChange: (value: string) => void;
+    footerControls?: React.ReactNode;
+}
+
+function WritingCard({ item, showAnswer, promptMode, userInput, onInputChange, footerControls }: WritingCardProps) {
+    const isEnglish = promptMode === 'english';
+    const promptText = isEnglish ? item.english : item.latinised;
+    const answerLine1 = item.thai;
+    const answerLine2 = isEnglish ? item.latinised : item.english;
+
+    return (
+        <div className={`card writing-card ${footerControls ? 'with-inline-controls' : ''}`}>
+            <div className="card-content-area">
+                <div
+                    data-testid="writing-prompt"
+                    className="writing-english"
+                    style={autoFitStyle(promptText, 28)}
+                >
+                    {promptText}
+                </div>
+                <div
+                    data-testid="writing-grammar"
+                    className="writing-grammar"
+                >
+                    {item.grammar}
+                </div>
+                <input
+                    data-testid="writing-input"
+                    className="writing-input"
+                    type="text"
+                    lang="th"
+                    placeholder="Type in Thai…"
+                    value={userInput}
+                    onChange={e => onInputChange(e.target.value)}
+                    onMouseDown={stopGesturePropagation}
+                    onMouseUp={stopGesturePropagation}
+                    onTouchStart={stopGesturePropagation}
+                    onTouchEnd={stopGesturePropagation}
+                />
+                <div
+                    data-testid="writing-answer-thai"
+                    className={`writing-answer-thai ${!showAnswer ? 'hidden' : ''}`}
+                    style={autoFitStyle(answerLine1, 28)}
+                >
+                    {answerLine1}
+                </div>
+                <div
+                    data-testid="writing-answer-secondary"
+                    className={`writing-answer-latinised ${!showAnswer ? 'hidden' : ''}`}
+                    style={autoFitStyle(answerLine2, 16)}
+                >
+                    {answerLine2}
+                </div>
+            </div>
+            {footerControls}
+        </div>
+    );
+}
+
+// ─── WritingDeck component ───────────────────────────────────────────────────
+
+const WRITING_CATEGORIES = VOCABULARY_CATEGORIES;
+
+interface WritingDeckProps {
+    onBack: () => void;
+}
+
+export function WritingDeck({ onBack }: WritingDeckProps) {
+    const [selectedCategory, setSelectedCategory] = useState<VocabularyCategory | null>(null);
+    const [deck, setDeck] = useState<VocabItem[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [showAnswer, setShowAnswer] = useState(false);
+    const [userInput, setUserInput] = useState('');
+    const [promptMode, setPromptMode] = useState<WritingPromptMode>('english');
+
+    const isDeckComplete = deck.length > 0 && currentIndex >= deck.length;
+    const currentCard = !isDeckComplete ? deck[currentIndex] : null;
+
+    function startDeck(cat: VocabularyCategory | null) {
+        const items = cat
+            ? VOCABULARY.filter(v => v.category === cat)
+            : VOCABULARY;
+        const uniqueItems = uniqueByStableKey(items, getWritingDeckKey);
+        setSelectedCategory(cat);
+        setDeck(shuffleArray(uniqueItems));
+        setCurrentIndex(0);
+        setShowAnswer(false);
+        setUserInput('');
+    }
+
+    function handleRestart() {
+        startDeck(selectedCategory);
+    }
+
+    function handleShuffle() {
+        startDeck(selectedCategory);
+    }
+
+    function handleBackToStart() {
+        setCurrentIndex(0);
+        setShowAnswer(false);
+        setUserInput('');
+    }
+
+    function handleSpeak() {
+        if (!currentCard) {
+            return;
+        }
+        speakThai(currentCard.thai, currentCard.audio);
+    }
+
+    function handleNext() {
+        setCurrentIndex(i => i + 1);
+        setShowAnswer(false);
+        setUserInput('');
+    }
+
+    function handlePrev() {
+        setCurrentIndex(i => Math.max(0, i - 1));
+        setShowAnswer(false);
+        setUserInput('');
+    }
+
+    function handleBackToCategories() {
+        setSelectedCategory(null);
+        setDeck([]);
+        setCurrentIndex(0);
+        setShowAnswer(false);
+        setUserInput('');
+    }
+
+    function handleLongPressReveal() {
+        setShowAnswer(v => !v);
+    }
+
+    function handleTogglePromptMode() {
+        setPromptMode(m => m === 'english' ? 'latinised' : 'english');
+        setShowAnswer(false);
+    }
+
+    const gestureHandlers = useCardGestures({
+        onSwipeNext: handleNext,
+        onSwipePrev: handlePrev,
+        onDoubleTap: () => {},
+        onSingleTapMiddle: handleSpeak,
+        onSingleTapLeft: handlePrev,
+        onSingleTapRight: handleNext,
+        onLongPressMiddle: handleLongPressReveal,
+    });
+
+    const inlineControls = (
+        <div className="card-inline-controls">
+            <button
+                data-testid="play-btn"
+                type="button"
+                className="card-inline-button"
+                onMouseDown={stopGesturePropagation}
+                onMouseUp={stopGesturePropagation}
+                onTouchStart={stopGesturePropagation}
+                onTouchEnd={stopGesturePropagation}
+                onClick={handleSpeak}
+            >
+                ▶ Listen
+            </button>
+            <button
+                data-testid="toggle-answer-btn"
+                type="button"
+                className="card-inline-button"
+                onMouseDown={stopGesturePropagation}
+                onMouseUp={stopGesturePropagation}
+                onTouchStart={stopGesturePropagation}
+                onTouchEnd={stopGesturePropagation}
+                onClick={() => setShowAnswer(v => !v)}
+            >
+                {showAnswer ? 'Hide Answer' : 'Show Answer'}
+            </button>
+        </div>
+    );
+
+    // ── Category selection screen ──
+    if (deck.length === 0) {
+        return (
+            <div className="container">
+                <div className="centred">
+                    <div className="menu-title">Writing</div>
+                    <div className="menu-subtitle">Choose a category</div>
+                    <div className="category-grid">
+                        {WRITING_CATEGORIES.map(cat => (
+                            <button
+                                key={cat.id}
+                                className="button category-button"
+                                onClick={() => startDeck(cat.id)}
+                            >
+                                {cat.label}
+                            </button>
+                        ))}
+                        {WRITING_CATEGORIES.length % 2 === 1 && (
+                            <button
+                                className="button category-button"
+                                onClick={() => startDeck(null)}
+                            >
+                                All
+                            </button>
+                        )}
+                    </div>
+                    {WRITING_CATEGORIES.length % 2 === 0 && (
+                        <button
+                            className="button menu-button"
+                            onClick={() => startDeck(null)}
+                        >
+                            All
+                        </button>
+                    )}
+                    <button className="button menu-button back-button" onClick={onBack}>
+                        Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="container">
+            {isDeckComplete ? (
+                <div className="centred">
+                    <div className="complete-text">Deck Complete!</div>
+                    <div className="complete-buttons">
+                        <button className="button" onClick={handleRestart}>
+                            Start Again
+                        </button>
+                        <button className="button" onClick={handleBackToCategories}>
+                            Choose Category
+                        </button>
+                        <button className="button back-button" onClick={onBack}>
+                            Back to Menu
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div className="centred">
+                    <button
+                        data-testid="toggle-prompt-mode-btn"
+                        className="direction-toggle"
+                        onClick={handleTogglePromptMode}
+                    >
+                        {promptMode === 'english' ? 'EN → TH' : 'Latin → TH'}
+                    </button>
+                    <div
+                        className="gesture-surface"
+                        data-testid="card-gesture-surface"
+                        {...gestureHandlers}
+                    >
+                        <WritingCard
+                            item={deck[currentIndex]}
+                            showAnswer={showAnswer}
+                            promptMode={promptMode}
+                            userInput={userInput}
+                            onInputChange={setUserInput}
+                            footerControls={inlineControls}
+                        />
+                    </div>
+                    <div className="button-row">
+                        <button
+                            data-testid="prev-btn"
+                            className="button"
+                            disabled={currentIndex === 0}
+                            onClick={handlePrev}
+                        >
+                            Previous
+                        </button>
+                        <button
+                            className="button"
+                            onClick={handleNext}
+                        >
+                            Next
+                        </button>
+                    </div>
+                    <div className="util-row">
+                        <button
+                            data-testid="back-to-start-btn"
+                            className="util-button"
+                            disabled={currentIndex === 0}
+                            onClick={handleBackToStart}
+                        >
+                            Back to Start
+                        </button>
+                        <button
+                            data-testid="shuffle-btn"
+                            className="util-button"
+                            onClick={handleShuffle}
+                        >
+                            Shuffle Deck
+                        </button>
+                    </div>
+                    <button
+                        className="util-button util-button-back"
+                        onClick={handleBackToCategories}
+                    >
+                        Back to Categories
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ─── Script deck selector ────────────────────────────────────────────────────
 
-type ScriptMode = 'MENU' | 'CONSONANTS' | 'TONAL' | 'VOWELS';
+type ScriptMode = 'MENU' | 'CONSONANTS' | 'TONAL' | 'VOWELS' | 'WRITING';
 
 interface ScriptScreenProps {
     onBack: () => void;
@@ -1712,6 +2037,14 @@ function ScriptScreen({
         );
     }
 
+    if (mode === 'WRITING') {
+        return (
+            <WritingDeck
+                onBack={() => setMode('MENU')}
+            />
+        );
+    }
+
     return (
         <div className="container">
             <div className="centred">
@@ -1734,6 +2067,12 @@ function ScriptScreen({
                     onClick={() => setMode('TONAL')}
                 >
                     Practice Tone Rules
+                </button>
+                <button
+                    className="button menu-button"
+                    onClick={() => setMode('WRITING')}
+                >
+                    Writing
                 </button>
                 <button className="button menu-button back-button" onClick={onBack}>
                     Back

@@ -7,7 +7,7 @@ import { VOCABULARY, Grammar, type VocabItem } from './vocabulary';
 import { EXERCISES, EXERCISE_CATEGORIES, type Exercise } from './excercices';
 import { VOCABULARY_CATEGORIES } from './vocabulary';
 import { autoFitStyle, shuffleArray } from './utils';
-import App, { FlashcardDeck, VocabularyDeck, ExerciseDeck } from './App';
+import App, { FlashcardDeck, VocabularyDeck, ExerciseDeck, WritingDeck } from './App';
 
 vi.mock('./speech', () => ({
     speakThai: vi.fn(),
@@ -145,6 +145,18 @@ function getExerciseDeckKey(item: Exercise): string {
 
 const UNIQUE_VOCABULARY_CARD_COUNT = new Set(VOCABULARY.map(getVocabularyDeckKey)).size;
 const UNIQUE_EXERCISE_CARD_COUNT = new Set(EXERCISES.map(getExerciseDeckKey)).size;
+
+function getWritingDeckKey(item: { thai: string; english: string; latinised: string; grammar: string }): string {
+    return [
+        'writing-deck',
+        toDeckKeySegment(item.thai),
+        toDeckKeySegment(item.english),
+        toDeckKeySegment(item.latinised),
+        toDeckKeySegment(item.grammar),
+    ].join('|');
+}
+
+const UNIQUE_WRITING_CARD_COUNT = new Set(VOCABULARY.map(getWritingDeckKey)).size;
 
 // ── 1. shuffleArray() ─────────────────────────────────────────────────────────
 
@@ -819,6 +831,195 @@ describe('<ExerciseDeck />', () => {
         if (text.length > 23) {
             expect(el.style.fontSize).not.toBe('');
         }
+    });
+});
+// ── 2d. <WritingDeck /> ────────────────────────────────────────────────────────────
+
+function renderWritingDeck() {
+    const utils = render(<WritingDeck onBack={vi.fn()} />);
+    fireEvent.click(utils.getByText('All'));
+    return utils;
+}
+
+describe('<WritingDeck />', () => {
+    it('shows category selection screen on first render', () => {
+        const { getByText } = render(<WritingDeck onBack={vi.fn()} />);
+        expect(getByText('Writing')).toBeTruthy();
+        expect(getByText('Choose a category')).toBeTruthy();
+        VOCABULARY_CATEGORIES.forEach(cat => {
+            expect(getByText(cat.label)).toBeTruthy();
+        });
+        expect(getByText('All')).toBeTruthy();
+    });
+
+    it('shows English text after entering deck', () => {
+        const { getByTestId } = renderWritingDeck();
+        const q = getByTestId('writing-prompt');
+        expect(q).toBeTruthy();
+        expect(VOCABULARY.map(v => v.english)).toContain(q.textContent);
+    });
+
+    it('shows a text input for typing Thai', () => {
+        const { getByTestId } = renderWritingDeck();
+        const input = getByTestId('writing-input') as HTMLInputElement;
+        expect(input).toBeTruthy();
+        expect(input.placeholder).toBe('Type in Thai\u2026');
+    });
+
+    it('shows grammar label', () => {
+        const { getByTestId } = renderWritingDeck();
+        const grammar = getByTestId('writing-grammar');
+        expect(grammar).toBeTruthy();
+        const validGrammar: Grammar[] = ['noun', 'verb', 'adjective', 'adverb', 'pronoun',
+            'preposition', 'conjunction', 'particle', 'number', 'phrase'];
+        expect(validGrammar).toContain(grammar.textContent);
+    });
+
+    it('allows typing in the input field', () => {
+        const { getByTestId } = renderWritingDeck();
+        const input = getByTestId('writing-input') as HTMLInputElement;
+        fireEvent.change(input, { target: { value: 'สวัสดี' } });
+        expect(input.value).toBe('สวัสดี');
+    });
+
+    it('hides answer by default', () => {
+        const { getByTestId } = renderWritingDeck();
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('writing-answer-secondary').classList.contains('hidden')).toBe(true);
+    });
+
+    it('shows answer after pressing "Show Answer"', () => {
+        const { getByText, getByTestId } = renderWritingDeck();
+        fireEvent.click(getByText('Show Answer'));
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(false);
+        expect(getByTestId('writing-answer-secondary').classList.contains('hidden')).toBe(false);
+    });
+
+    it('hides answer again after pressing "Hide Answer"', () => {
+        const { getByText, getByTestId } = renderWritingDeck();
+        fireEvent.click(getByText('Show Answer'));
+        fireEvent.click(getByText('Hide Answer'));
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('writing-answer-secondary').classList.contains('hidden')).toBe(true);
+    });
+
+    it('shows answer after long-pressing the card', () => {
+        vi.useFakeTimers();
+        try {
+            (speakThai as ReturnType<typeof vi.fn>).mockClear();
+            const { getByTestId } = renderWritingDeck();
+            expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(true);
+
+            longPress(getByTestId('card-gesture-surface'));
+            expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(false);
+            expect(getByTestId('writing-answer-secondary').classList.contains('hidden')).toBe(false);
+
+            act(() => {
+                vi.advanceTimersByTime(500);
+            });
+            expect(speakThai).not.toHaveBeenCalled();
+
+            longPress(getByTestId('card-gesture-surface'));
+            expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(true);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('advances to next card and clears input', () => {
+        const { getByText, getByTestId } = renderWritingDeck();
+        const input = getByTestId('writing-input') as HTMLInputElement;
+        fireEvent.change(input, { target: { value: 'test' } });
+        expect(input.value).toBe('test');
+        const first = getByTestId('writing-prompt').textContent;
+        fireEvent.click(getByText('Next'));
+        const second = getByTestId('writing-prompt').textContent;
+        expect(second).not.toBe(first);
+        expect((getByTestId('writing-input') as HTMLInputElement).value).toBe('');
+    });
+
+    it('hides answer when navigating to next card', () => {
+        const { getByText, getByTestId } = renderWritingDeck();
+        fireEvent.click(getByText('Show Answer'));
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByText('Next'));
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(true);
+    });
+
+    it('hides answer when navigating to previous card', () => {
+        const { getByText, getByTestId } = renderWritingDeck();
+        fireEvent.click(getByText('Next'));
+        fireEvent.click(getByText('Show Answer'));
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByText('Previous'));
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(true);
+    });
+
+    it('speaks the Thai text when play is pressed', () => {
+        (speakThai as ReturnType<typeof vi.fn>).mockClear();
+        const { getByTestId } = renderWritingDeck();
+        fireEvent.click(getByTestId('play-btn'));
+        const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        expect(VOCABULARY.map(v => v.thai)).toContain(text);
+    });
+
+    it('shows Deck Complete after going through all cards', () => {
+        const { getByText } = renderWritingDeck();
+        for (let i = 0; i < UNIQUE_WRITING_CARD_COUNT; i++) {
+            fireEvent.click(getByText('Next'));
+        }
+        expect(getByText('Deck Complete!')).toBeTruthy();
+    });
+
+    it('filters by category', () => {
+        const { getByText, getByTestId } = render(<WritingDeck onBack={vi.fn()} />);
+        fireEvent.click(getByText('Food and Drink'));
+        const q = getByTestId('writing-prompt');
+        const foodEnglish = VOCABULARY.filter(v => v.category === 'food-and-drink').map(v => v.english);
+        expect(foodEnglish).toContain(q.textContent);
+    });
+
+    it('navigates back to categories', () => {
+        const { getByText } = renderWritingDeck();
+        fireEvent.click(getByText('Back to Categories'));
+        expect(getByText('Choose a category')).toBeTruthy();
+    });
+
+    it('is accessible via Script menu', () => {
+        const { getByText } = render(<App />);
+        fireEvent.click(getByText('Script'));
+        expect(getByText('Writing')).toBeTruthy();
+        fireEvent.click(getByText('Writing'));
+        expect(getByText('Choose a category')).toBeTruthy();
+    });
+
+    it('shows prompt mode toggle defaulting to EN → TH', () => {
+        const { getByTestId } = renderWritingDeck();
+        expect(getByTestId('toggle-prompt-mode-btn').textContent).toBe('EN → TH');
+    });
+
+    it('switches to Latin → TH and shows latinised as prompt', () => {
+        const { getByTestId } = renderWritingDeck();
+        fireEvent.click(getByTestId('toggle-prompt-mode-btn'));
+        expect(getByTestId('toggle-prompt-mode-btn').textContent).toBe('Latin → TH');
+        const prompt = getByTestId('writing-prompt').textContent;
+        expect(VOCABULARY.map(v => v.latinised)).toContain(prompt);
+    });
+
+    it('shows English as secondary answer when in latinised mode', () => {
+        const { getByTestId, getByText } = renderWritingDeck();
+        fireEvent.click(getByTestId('toggle-prompt-mode-btn'));
+        fireEvent.click(getByText('Show Answer'));
+        const secondary = getByTestId('writing-answer-secondary').textContent;
+        expect(VOCABULARY.map(v => v.english)).toContain(secondary);
+    });
+
+    it('resets answer visibility when toggling prompt mode', () => {
+        const { getByTestId, getByText } = renderWritingDeck();
+        fireEvent.click(getByText('Show Answer'));
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(false);
+        fireEvent.click(getByTestId('toggle-prompt-mode-btn'));
+        expect(getByTestId('writing-answer-thai').classList.contains('hidden')).toBe(true);
     });
 });
 // ── 3. <FlashcardDeck /> rendering ───────────────────────────────────────────
