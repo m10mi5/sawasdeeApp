@@ -84,8 +84,11 @@ export interface Consonant {
   englishMeaning: string;  // Meaning of the acrophonic word, e.g. 'Chicken'
   class: 'Mid' | 'High' | 'Low';
   pair?: string | null;    // Low-class only: paired High-class character, or null if unpaired
+  rare?: boolean;          // Archaic or rarely-used consonant, hidden by default in FlashcardDeck
 }
 ```
+
+9 consonants are marked `rare: true`: ฃ (Kho Khuat), ฅ (Kho Khon), ฆ (Kho Rakhang), ฌ (Cho Choe), ฎ (Do Chada), ฏ (To Patak), ฑ (Tho Montho), ฒ (Tho Phuthao), ฬ (Lo Chula). The remaining 35 are shown by default.
 
 ### Content — all 44 consonants
 
@@ -149,40 +152,55 @@ export interface Vowel {
   thaiName:        string;               // Thai name, e.g. 'สระ อา'
   name:            string;               // Romanised name, e.g. 'Sara Aa'
   romanisation:    string;               // Phonetic value, e.g. 'aa'
-  length:          'Short' | 'Long' | 'Diphthong';
+  length:          'Short' | 'Long' | 'Diphthong' | 'Special';
   exampleWord:     string;               // Real Thai word demonstrating the vowel
   exampleMeaning:  string;               // English meaning of example word
+  exampleRomanisation?: string;           // Romanised pronunciation from vocabulary.ts
+  audio?:          string;               // Audio filename in public/audio/ for the example word
+  closedSymbol?:   string;               // Vowel form in a closed syllable (with final consonant)
+  rare?:           boolean;              // Rare vowel form, hidden by default in FlashcardDeck
   type: 'vowel';
 }
 ```
 
-### Content — 23 vowels
+4 vowels are marked `rare: true`: เกอะ (Sara Oe short), เกียะ (Sara Ia short), เกือะ (Sara Uea short), กัวะ (Sara Ua short). These are the short forms of diphthong vowels that are extremely uncommon in modern Thai. The remaining 24 vowels are shown by default.
 
-| # | Symbol | Thai Name | Name | Sound | Length | Example | Meaning |
-|---|---|---|---|---|---|---|---|
-| 1 | กะ | สระ อะ | Sara A | a | Short | กะทิ | coconut milk |
-| 2 | กิ | สระ อิ | Sara I | i | Short | กิน | to eat |
-| 3 | กึ | สระ อึ | Sara Ue | ue | Short | กึก | thud |
-| 4 | กุ | สระ อุ | Sara U | u | Short | กุ้ง | shrimp |
-| 5 | เกะ | สระ เอะ | Sara E | e | Short | เก็บ | to collect |
-| 6 | แกะ | สระ แอะ | Sara Ae | ae | Short | แกะ | lamb |
-| 7 | โกะ | สระ โอะ | Sara O | o | Short | โต๊ะ | table |
-| 8 | เกาะ | สระ เอาะ | Sara Aw | aw | Short | เกาะ | island |
-| 9 | กา | สระ อา | Sara Aa | aa | Long | กา | crow |
-| 10 | กี | สระ อี | Sara Ii | ii | Long | กีตาร์ | guitar |
-| 11 | กือ | สระ อือ | Sara Uue | uue | Long | คือ | to be / is |
-| 12 | กู | สระ อู | Sara Uu | uu | Long | ดู | to watch |
-| 13 | เก | สระ เอ | Sara Ee | ee | Long | เก่า | old |
-| 14 | แก | สระ แอ | Sara Aae | aae | Long | แมว | cat |
-| 15 | โก | สระ โอ | Sara Oo | oo | Long | โต | big |
-| 16 | กอ | สระ ออ | Sara Aaw | aaw | Long | พอ | enough |
-| 17 | เกีย | สระ เอีย | Sara Ia | ia | Diphthong | เบียร์ | beer |
-| 18 | เกือ | สระ เอือ | Sara Uea | uea | Diphthong | เดือน | month |
-| 19 | กัว | สระ อัว | Sara Ua | ua | Diphthong | วัว | cow |
-| 20 | ไก | ไม้มลาย | Mai Malai | ai | Diphthong | ไก่ | chicken |
-| 21 | ใก | ไม้ม้วน | Mai Muan | ai | Diphthong | ใจ | heart / mind |
-| 22 | เกา | สระ เอา | Sara Ao | ao | Diphthong | เกา | to scratch |
-| 23 | กำ | สระ อำ | Sara Am | am | Diphthong | ทำ | to do |
+### Content — 28 vowels (12 short + 12 long + 4 special)
+
+Most vowels have an `audio` field pointing to a recorded MP3 in `public/audio/`. When pressed, the play button speaks the example word using the recording (falls back to TTS when no audio is available).
+
+Vowels whose written form changes in closed syllables (vowel + final consonant) have a `closedSymbol` field. The card renders both forms: `กะ / กัก`. These are Sara A (อะ→อั), Sara E (เอะ→เ-็), Sara Ae (แอะ→แ-็), Sara O (โอะ→implicit), Sara Uue (อือ→อื-), Sara Oe (เออ→เ-ิ-), and Sara Ua (อัว→-ว-).
+
+| # | Symbol | Closed | Thai Name | Name | Sound | Length | Example | Meaning | Audio |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | กะ | กัก | สระ อะ | Sara A | a | Short | คะ | polite particle (female) | ✓ |
+| 2 | กิ | – | สระ อิ | Sara I | i | Short | กิน | to eat | ✓ |
+| 3 | กึ | – | สระ อึ | Sara Ue | ue | Short | คิดถึง | to miss | ✓ |
+| 4 | กุ | – | สระ อุ | Sara U | u | Short | คุณ | you | ✓ |
+| 5 | เกะ | เก็ก | สระ เอะ | Sara E | e | Short | เจ็บ | hurt / injured | ✓ |
+| 6 | แกะ | แก็ก | สระ แอะ | Sara Ae | ae | Short | น้ำแข็ง | ice | ✓ |
+| 7 | โกะ | กก | สระ โอะ | Sara O | o | Short | น้ำตก | waterfall | ✓ |
+| 8 | เกาะ | – | สระ เอาะ | Sara Aw | aw | Short | เพราะว่า | because | ✓ |
+| 9 | เกอะ | – | สระ เออะ | Sara Oe (short) | oe | Short | เลอะ | messy / smeared | – |
+| 10 | เกียะ | – | สระ เอียะ | Sara Ia (short) | ia | Short | เกียะ | wooden clog | – |
+| 11 | เกือะ | – | สระ เอือะ | Sara Uea (short) | uea | Short | เกือะ | (rare vowel) | – |
+| 12 | กัวะ | – | สระ อัวะ | Sara Ua (short) | ua | Short | ผัวะ | sound of bursting | – |
+| 13 | กา | – | สระ อา | Sara Aa | aa | Long | มา | come | ✓ |
+| 14 | กี | – | สระ อี | Sara Ii | ii | Long | ดี | good / well | ✓ |
+| 15 | กือ | กืน | สระ อือ | Sara Uue | uue | Long | มือ | hand | ✓ |
+| 16 | กู | – | สระ อู | Sara Uu | uu | Long | ดู | to watch | ✓ |
+| 17 | เก | – | สระ เอ | Sara Ee | ee | Long | เก่า | old (things) | ✓ |
+| 18 | แก | – | สระ แอ | Sara Aae | aae | Long | แม่ | mother | ✓ |
+| 19 | โก | – | สระ โอ | Sara Oo | oo | Long | โรง | big building | ✓ |
+| 20 | กอ | – | สระ ออ | Sara Aaw | aaw | Long | รอ | to wait | ✓ |
+| 21 | เกอ | เกิน | สระ เออ | Sara Oe | oe | Long | เจอ | to meet | ✓ |
+| 22 | เกีย | – | สระ เอีย | Sara Ia | ia | Long | เบียร์ | beer | ✓ |
+| 23 | เกือ | – | สระ เอือ | Sara Uea | uea | Long | เดือน | month | ✓ |
+| 24 | กัว | กวก | สระ อัว | Sara Ua | ua | Long | กลัว | afraid | ✓ |
+| 25 | ไก | – | ไม้มลาย | Mai Malai | ai | Special | ไก่ | chicken | ✓ |
+| 26 | ใก | – | ไม้ม้วน | Mai Muan | ai | Special | ใจ | heart | ✓ |
+| 27 | เกา | – | สระ เอา | Sara Ao | ao | Special | เขา | he / she / they | ✓ |
+| 28 | กำ | – | สระ อำ | Sara Am | am | Special | ทำ | to do / make | ✓ |
 
 ---
 
@@ -382,7 +400,7 @@ export function speakThai(text: string, audioFile?: string): void
 |---|---|
 | `App` | Root screen router + cache-backed improvement selection state + toast notification rendering |
 | `ScriptScreen` | Script menu and dispatch to consonant/vowel/tonal `FlashcardDeck` and `WritingDeck` |
-| `FlashcardDeck` | Script card deck with swipe navigation, double-tap improvement toggle, audio, detail toggle |
+| `FlashcardDeck` | Script card deck with swipe navigation, double-tap improvement toggle, audio, detail toggle, rare item filtering |
 | `VocabularyDeck` | Category-first vocab deck with direction toggle, swipe, double-tap improvement toggle |
 | `ExerciseDeck` | Category-first exercise deck with direction toggle, swipe, double-tap improvement toggle |
 | `WritingDeck` | Category-first writing practice deck using vocabulary items; shows English, user types Thai, show/hide answer |
@@ -484,7 +502,7 @@ This is applied directly in the literal `english`/`latinised` values in `src/voc
 
 ### Current Scope
 
-`src/App.test.tsx` contains **123 passing tests**.
+`src/App.test.tsx` contains **130 passing tests**.
 
 Main coverage areas:
 
@@ -499,6 +517,7 @@ Main coverage areas:
 9. Swipe gesture navigation (left/right) in flashcard flow
 10. Deck deduplication behavior (duplicate source rows are collapsed before deck completion)
 11. Writing deck flow (category, show/hide answer, text input, play audio, navigation, completion)
+12. Rare toggle (show/hide button for consonant/vowel decks, hidden for tonal rules, toggle updates deck, all items shown when enabled)
 
 ### Core Assertions Added In This Iteration
 
@@ -575,8 +594,8 @@ npm run preview
 10. **Full-height cards** — all card types use `flex: 1` to fill the available vertical space, giving a uniform, modern full-screen feel. Cards use `width: calc(100vw - 32px); max-width: 400px` for near-full-width on mobile. Content is vertically centered via `justify-content: center`.
 11. **Opacity-based hide** — detail labels use CSS class `hidden` (opacity: 0) rather than conditional rendering, keeping card height stable when toggling visibility.
 12. **Tonal diacritic romanisation** — romanisations use vowel diacritics to encode tone (`à` low, `â` falling, `á` high, `ǎ` rising, unmarked = mid), matching common Thai-learning conventions. `toneMarkThai`/`toneMarkLatin` are optional fields; the tone-mark row in `Card` is **always rendered** but hidden via `hidden` CSS class when either `!showDetails` or `!item.toneMarkThai`, keeping card height fixed across all rule cards.
-13. **Web Speech API TTS** — `speakThai()` wraps `SpeechSynthesisUtterance` with `lang = 'th'`; no audio asset files are needed. Thai voice availability depends on the user's OS/browser.
-14. **Vowel deck mirrors consonant card** — `Vowel` cards reuse the same CSS classes as consonant cards; `LENGTH_COLORS` maps Short/Long/Diphthong to the same blue/green/orange palette as CLASS_COLORS. The `symbol` field always includes ก as the base consonant so the vowel form is visible and immediately pronounceable by TTS.
+13. **Audio playback** — `speakThai()` wraps `SpeechSynthesisUtterance` with `lang = 'th'`. When an `audioFile` string is provided, it plays the MP3 from `public/audio/` instead. Vocabulary and exercise cards pass `item.audio`; vowel cards pass their `audio` field (20 of 23 vowels have recordings). `getFlashcardAudio(item)` returns the audio filename for vowels (or `undefined` otherwise) and is used by both `FlashcardDeck` and `ImprovementDeck`.
+14. **Vowel deck mirrors consonant card** — `Vowel` cards reuse the same CSS classes as consonant cards; `LENGTH_COLORS` maps Short/Long/Diphthong to the same blue/green/orange palette as CLASS_COLORS. The `symbol` field always includes ก as the base consonant so the vowel form is visible. Play button speaks the `exampleWord` (with recorded audio when available) rather than the bare symbol. The example label shows `exampleWord (exampleRomanisation) = exampleMeaning` when romanisation is available, sourced from `vocabulary.ts` to ensure phonetic accuracy.
 15. **GitHub Actions CI/CD** — every push to `main` runs typecheck + tests, then builds and deploys to GitHub Pages. No manual deployment step.
 16. **Category selection pattern** — VocabularyDeck and ExerciseDeck both use the same category selection pattern: `selectedCategory` state starts `null`, `deck` starts empty, a category grid screen is shown first, `startDeck(cat)` filters the data array, deduplicates by stable display key, and shuffles the unique cards; "Back to Categories" returns to the selection screen. This keeps both deck components structurally identical while preventing repeated cards in a single run.
 17. **CSS consistency for selection screens** — All category selection screens and the home menu use the same CSS classes: `.category-grid` + `.category-button` (width: 100%) for the grid, and `.menu-button` for full-width action buttons. Both `.menu-button` and `.category-grid` use `width: clamp(220px, 60vw, 320px)` for responsive sizing that is proportionally narrower than cards (`calc(100vw - 32px)`, max 400px).
@@ -584,3 +603,4 @@ npm run preview
 19. **Gesture-first review flow** — active cards support swipe navigation plus zone-based taps (left/right single-tap navigation, middle single-tap audio, middle double-tap selection) to reduce button-only interaction friction on mobile.
 20. **Pronunciation replaced by review mode** — the former placeholder mode was replaced with a functional Improvement Needed deck that can replay mixed card types.
 21. **Text hygiene at source and render time** — English/Latin-facing text is normalized to lowercase, cleaned of trailing full stops, and stripped of accidental Thai-block characters.
+22. **Rare item toggle** — `FlashcardDeck` defaults `showRare` to `false`, filtering out consonants and vowels with `rare: true` via a `filteredData` memo. A "Show Rare" / "Hide Rare" toggle button (`data-testid="toggle-rare-btn"`) appears at the top of the deck (before the card, styled as `direction-toggle`) only when the deck contains rare items (`hasRareItems`). When the filter changes, a `useEffect` re-shuffles the deck and resets the index to prevent stale positions. Tonal rules have no rare items, so the button never appears for that deck.

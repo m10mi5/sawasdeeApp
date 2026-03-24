@@ -17,7 +17,7 @@ import { speakThai } from './speech';
 
 // jsdom normalises inline style hex values to rgb()
 const CLASS_COLORS = { mid: 'rgb(46, 125, 50)', high: 'rgb(198, 40, 40)', low: 'rgb(21, 101, 192)' } as const;
-const LENGTH_COLORS = { short: 'rgb(21, 101, 192)', long: 'rgb(46, 125, 50)', diphthong: 'rgb(230, 81, 0)' } as const;
+const LENGTH_COLORS = { short: 'rgb(21, 101, 192)', long: 'rgb(46, 125, 50)', diphthong: 'rgb(230, 81, 0)', special: 'rgb(106, 27, 154)' } as const;
 
 beforeEach(() => {
     window.localStorage.clear();
@@ -1065,7 +1065,7 @@ describe('Vowel deck rendering', () => {
         const { getByTestId, getByText } = renderVowelDeck();
         fireEvent.click(getByText('Show Details'));
         const label = getByTestId('vowel-length-label');
-        expect(['short', 'long', 'diphthong']).toContain(label.textContent);
+        expect(['short', 'long', 'diphthong', 'special']).toContain(label.textContent);
     });
 
     it('shows the vowel name label', () => {
@@ -1088,9 +1088,63 @@ describe('Vowel deck rendering', () => {
         expect(getByTestId('vowel-name-label').classList.contains('hidden')).toBe(true);
         expect(getByTestId('vowel-romanisation-label').classList.contains('hidden')).toBe(true);
     });
+
+    it('shows closed syllable form alongside open form for vowels that have one', () => {
+        const withClosed = VOWELS.filter(v => v.closedSymbol && !v.rare);
+        expect(withClosed.length).toBeGreaterThan(0);
+        // Render the Sara A card (first vowel, which has closedSymbol)
+        const { container } = render(<FlashcardDeck data={withClosed} onBack={vi.fn()} />);
+        const charEl = container.querySelector('.character');
+        expect(charEl?.textContent).toContain('/');
+    });
+
+    it('shows example romanisation in the example label when details are visible', () => {
+        const withRomanisation = VOWELS.filter(v => v.exampleRomanisation && !v.rare);
+        expect(withRomanisation.length).toBeGreaterThan(0);
+        const { getByTestId, getByText } = render(<FlashcardDeck data={withRomanisation} onBack={vi.fn()} />);
+        fireEvent.click(getByText('Show Details'));
+        const exampleEl = getByTestId('vowel-example-label');
+        const vowel = withRomanisation.find(v => exampleEl.textContent?.includes(v.exampleWord));
+        expect(vowel).toBeTruthy();
+        expect(exampleEl.textContent).toContain(`(${vowel!.exampleRomanisation})`);
+    });
 });
 
-// ── 4. Play button ────────────────────────────────────────────────────────────────────────
+// ── 4. Rare toggle ────────────────────────────────────────────────────────────────────────
+
+describe('Rare toggle', () => {
+    it('shows "Show Rare" button for consonant deck', () => {
+        const { getByTestId } = renderDeck();
+        expect(getByTestId('toggle-rare-btn').textContent).toBe('Show Rare');
+    });
+
+    it('shows "Show Rare" button for vowel deck', () => {
+        const { getByTestId } = renderVowelDeck();
+        expect(getByTestId('toggle-rare-btn').textContent).toBe('Show Rare');
+    });
+
+    it('does not show rare button for tonal rules deck', () => {
+        const { queryByTestId } = render(<FlashcardDeck data={TONAL_RULES} onBack={vi.fn()} />);
+        expect(queryByTestId('toggle-rare-btn')).toBeNull();
+    });
+
+    it('toggles to "Hide Rare" when clicked', () => {
+        const { getByTestId } = renderDeck();
+        fireEvent.click(getByTestId('toggle-rare-btn'));
+        expect(getByTestId('toggle-rare-btn').textContent).toBe('Hide Rare');
+    });
+
+    it('includes all 44 consonants when rare are shown', () => {
+        const { getByText, getByTestId } = renderDeck();
+        fireEvent.click(getByTestId('toggle-rare-btn'));
+        for (let i = 0; i < CONSONANTS.length; i++) {
+            fireEvent.click(getByText('Next'));
+        }
+        expect(getByText('Deck Complete!')).toBeTruthy();
+    });
+});
+
+// ── 5. Play button ────────────────────────────────────────────────────────────────────────
 
 describe('Play button', () => {
     beforeEach(() => (speakThai as ReturnType<typeof vi.fn>).mockClear());
@@ -1109,11 +1163,13 @@ describe('Play button', () => {
         expect(TONAL_RULES.map(r => r.thaiWord)).toContain(text);
     });
 
-    it('speaks the symbol of the current vowel', () => {
+    it('speaks the example word of the current vowel with audio', () => {
         const { getByTestId } = renderVowelDeck();
         fireEvent.click(getByTestId('play-btn'));
-        const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
-        expect(VOWELS.map(v => v.symbol)).toContain(text);
+        const [text, audio] = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0];
+        expect(VOWELS.map(v => v.exampleWord)).toContain(text);
+        const match = VOWELS.find(v => v.exampleWord === text);
+        expect(audio).toBe(match?.audio);
     });
 
     it('speaks on single tap of the card surface', () => {
@@ -1144,9 +1200,10 @@ describe('Next button', () => {
         expect(after).not.toBe(before);
     });
 
-    it('shows "Deck Complete!" after pressing Next 44 times', () => {
+    it('shows "Deck Complete!" after pressing Next through non-rare consonants', () => {
+        const nonRareCount = CONSONANTS.filter(c => !c.rare).length;
         const { getByText } = renderDeck();
-        for (let i = 0; i < 44; i++) {
+        for (let i = 0; i < nonRareCount; i++) {
             fireEvent.click(getByText('Next'));
         }
         expect(getByText('Deck Complete!')).toBeTruthy();
@@ -1308,9 +1365,11 @@ describe('Shuffle Deck button', () => {
 // ── 10. Restart flow ──────────────────────────────────────────────────────────
 
 describe('Restart flow', () => {
+    const nonRareCount = CONSONANTS.filter(c => !c.rare).length;
+
     function renderAndComplete() {
         const utils = renderDeck();
-        for (let i = 0; i < 44; i++) {
+        for (let i = 0; i < nonRareCount; i++) {
             fireEvent.click(utils.getByText('Next'));
         }
         return utils;
@@ -1332,7 +1391,7 @@ describe('Restart flow', () => {
     it('calls onBack when "Back to Menu" is pressed on the Complete screen', () => {
         const onBack = vi.fn();
         const utils = render(<FlashcardDeck data={CONSONANTS} onBack={onBack} />);
-        for (let i = 0; i < 44; i++) fireEvent.click(utils.getByText('Next'));
+        for (let i = 0; i < nonRareCount; i++) fireEvent.click(utils.getByText('Next'));
         fireEvent.click(utils.getByText('Back to Menu'));
         expect(onBack).toHaveBeenCalledTimes(1);
     });

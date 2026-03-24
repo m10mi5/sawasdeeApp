@@ -153,9 +153,16 @@ function getFlashcardSpeechText(item: FlashcardItem): string {
         return item.thaiName;
     }
     if (item.type === 'vowel') {
-        return item.symbol;
+        return item.exampleWord;
     }
     return item.thaiWord;
+}
+
+function getFlashcardAudio(item: FlashcardItem): string | undefined {
+    if (!('character' in item) && item.type === 'vowel') {
+        return item.audio;
+    }
+    return undefined;
 }
 
 function getImprovementCardLabel(card: ImprovementCard): string {
@@ -481,6 +488,7 @@ const LENGTH_COLORS: Record<Vowel['length'], string> = {
     Short: '#1565c0',
     Long: '#2e7d32',
     Diphthong: '#e65100',
+    Special: '#6a1b9a',
 };
 
 // ─── Card sub-component ──────────────────────────────────────────────────────
@@ -539,7 +547,9 @@ function Card({ item, showDetails, footerControls }: CardProps) {
         return (
             <div className={`card ${footerControls ? 'with-inline-controls' : ''}`}>
                 <div className="card-content-area">
-                    <div className="character">{item.symbol}</div>
+                    <div className="character">
+                        {item.symbol}{item.closedSymbol ? ` / ${item.closedSymbol}` : ''}
+                    </div>
                     <div className="thai-name">{item.thaiName}</div>
                     <div
                         data-testid="vowel-name-label"
@@ -564,7 +574,7 @@ function Card({ item, showDetails, footerControls }: CardProps) {
                         data-testid="vowel-example-label"
                         className={`pair-label ${!showDetails ? 'hidden' : ''}`}
                     >
-                        {item.exampleWord} = {item.exampleMeaning.toLocaleLowerCase()}
+                        {item.exampleWord}{item.exampleRomanisation ? ` (${item.exampleRomanisation})` : ''} = {item.exampleMeaning.toLocaleLowerCase()}
                     </div>
                 </div>
                 {footerControls}
@@ -637,22 +647,37 @@ export function FlashcardDeck({
     onToggleImprovement,
 }: FlashcardDeckProps) {
     const uniqueData = useMemo(() => uniqueByStableKey(data, getFlashcardId), [data]);
-    const [deck, setDeck] = useState<FlashcardItem[]>(() => shuffleArray(uniqueData));
+    const hasRareItems = useMemo(() => uniqueData.some(item => 'rare' in item && item.rare), [uniqueData]);
+    const [showRare, setShowRare] = useState(false);
+
+    const filteredData = useMemo(
+        () => showRare ? uniqueData : uniqueData.filter(item => !('rare' in item && item.rare)),
+        [uniqueData, showRare],
+    );
+
+    const [deck, setDeck] = useState<FlashcardItem[]>(() => shuffleArray(filteredData));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [showDetails, setShowDetails] = useState(false);
+
+    // Re-shuffle when the filter changes
+    useEffect(() => {
+        setDeck(shuffleArray(filteredData));
+        setCurrentIndex(0);
+        setShowDetails(false);
+    }, [filteredData]);
 
     const isDeckComplete = currentIndex >= deck.length;
     const currentCard = !isDeckComplete ? deck[currentIndex] : null;
     const currentCardId = currentCard ? getFlashcardId(currentCard) : null;
 
     function handleRestart() {
-        setDeck(shuffleArray(uniqueData));
+        setDeck(shuffleArray(filteredData));
         setCurrentIndex(0);
         setShowDetails(false);
     }
 
     function handleShuffle() {
-        setDeck(shuffleArray(uniqueData));
+        setDeck(shuffleArray(filteredData));
         setCurrentIndex(0);
         setShowDetails(false);
     }
@@ -666,7 +691,7 @@ export function FlashcardDeck({
         if (!currentCard) {
             return;
         }
-        speakThai(getFlashcardSpeechText(currentCard));
+        speakThai(getFlashcardSpeechText(currentCard), getFlashcardAudio(currentCard));
     }
 
     function handleNext() {
@@ -745,6 +770,15 @@ export function FlashcardDeck({
                 </div>
             ) : (
                 <div className="centred">
+                    {hasRareItems && (
+                        <button
+                            data-testid="toggle-rare-btn"
+                            className="direction-toggle"
+                            onClick={() => setShowRare(v => !v)}
+                        >
+                            {showRare ? 'Hide Rare' : 'Show Rare'}
+                        </button>
+                    )}
                     <div
                         className="gesture-surface"
                         data-testid="card-gesture-surface"
@@ -1477,7 +1511,7 @@ function ImprovementDeck({
         }
 
         if (currentCard.kind === 'script') {
-            speakThai(getFlashcardSpeechText(currentCard.item));
+            speakThai(getFlashcardSpeechText(currentCard.item), getFlashcardAudio(currentCard.item));
             return;
         }
 
