@@ -1156,11 +1156,13 @@ describe('Play button', () => {
         expect(CONSONANTS.map(c => c.thaiName)).toContain(text);
     });
 
-    it('speaks the thai word of the current tonal rule', () => {
+    it('speaks the thai word of the current tonal rule with audio', () => {
         const { getByTestId } = render(<FlashcardDeck data={TONAL_RULES} onBack={vi.fn()} />);
         fireEvent.click(getByTestId('play-btn'));
-        const text = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0][0];
+        const [text, audio] = (speakThai as ReturnType<typeof vi.fn>).mock.calls[0];
         expect(TONAL_RULES.map(r => r.thaiWord)).toContain(text);
+        const match = TONAL_RULES.find(r => r.thaiWord === text);
+        expect(audio).toBe(match?.audio);
     });
 
     it('speaks the example word of the current vowel with audio', () => {

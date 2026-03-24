@@ -106,39 +106,45 @@ export interface Consonant {
 
 ```ts
 export interface TonalRule {
-  ruleLabel:      string;   // e.g. 'Mid Class + Long Vowel' — shown on card front
-  thaiWord:       string;   // Thai example word, e.g. 'กา'
+  ruleLabel:      string;   // e.g. 'Mid Class + Live + Long Vowel' — shown on card front
+  thaiWord:       string;   // Thai example word, e.g. 'ตา'
   romanisation:   string;   // Latinised with tonal diacritic: à low · â falling · á high · ǎ rising · unmarked = mid
-  meaning:        string;   // English gloss, e.g. 'crow'
-  tone:           string;   // Resulting tone name, e.g. 'Mid Tone (Flat)'
+  meaning:        string;   // English gloss, e.g. 'eye'
+  tone:           string;   // Resulting tone name, e.g. 'Mid Tone'
   consonantThai:  string;   // Consonant name in Thai, e.g. 'กอ ไก่'
   consonantLatin: string;   // Consonant name romanised, e.g. 'Ko Kai'
   toneMarkThai?:  string;   // Tone mark name in Thai, e.g. 'ไม้เอก' — omitted for unmarked syllables
   toneMarkLatin?: string;   // Tone mark name romanised, e.g. 'Mai Ek' — omitted for unmarked syllables
+  audio?:         string;   // Audio filename in public/audio/ for the example word
   type: 'rule';
 }
 ```
 
-### Content — 14 tonal rules
+### Content — 17 tonal rules
+
+All example words are sourced from `vocabulary.ts` and have matching MP3 recordings in `public/audio/`. Rule labels distinguish live syllables (ending in a sonorant or long vowel) from dead syllables (ending in a stop consonant like ก, บ, ด, or a short vowel).
 
 Tonal diacritic key: `à` low · `â` falling · `á` high · `ǎ` rising · *(unmarked)* mid
 
-| Rule | Thai | Romanisation | Meaning | Tone |
-|---|---|---|---|---|
-| Mid Class + Long Vowel | กา | gaa | crow | Mid Tone |
-| Mid Class + Short Vowel | จับ | jàp | to catch | Low Tone |
-| Mid Class + Mai Ek (่) | จ่า | jàa | sergeant | Low Tone |
-| Mid Class + Mai Tho (้) | จ้า | jâa | yes! (emphatic) | Falling Tone |
-| Mid Class + Mai Tri (๊) | โต๊ะ | dtó | table | High Tone |
-| Mid Class + Mai Chattawa (๋) | ก๋วยเตี๋ยว | gǔai dtǐao | noodles | Rising Tone |
-| High Class + Long Vowel | ขา | khǎa | leg | Rising Tone |
-| High Class + Short Vowel | ขับ | khàp | to drive | Low Tone |
-| High Class + Mai Ek (่) | ข่า | khàa | galangal | Low Tone |
-| High Class + Mai Tho (้) | ข้าว | khâao | rice | Falling Tone |
-| Low Class + Long Vowel | คา | khaa | to be stuck | Mid Tone |
-| Low Class + Short Vowel | คะ | khá | polite particle (f.) | High Tone |
-| Low Class + Mai Ek (่) | ค่า | khâa | value / cost | Falling Tone |
-| Low Class + Mai Tho (้) | ค้า | kháa | to trade | High Tone |
+| Rule | Thai | Romanisation | Meaning | Tone | Audio |
+|---|---|---|---|---|---|
+| Mid Class + Live + Long Vowel | ตา | dtaa | eye | Mid Tone | ✓ |
+| Mid Class + Dead + Short Vowel | กับ | gàp | with | Low Tone | ✓ |
+| Mid Class + Dead + Long Vowel | ปาก | bpàak | mouth | Low Tone | ✓ |
+| Mid Class + Mai Ek (่) | เก่า | gào | old (things) | Low Tone | ✓ |
+| Mid Class + Mai Tho (้) | บ้าน | bâan | house | Falling Tone | ✓ |
+| Mid Class + Mai Tri (๊) | ตุ๊กตุ๊ก | dtúk dtúk | tricycle taxi | High Tone | ✓ |
+| Mid Class + Mai Chattawa (๋) | ตั๋ว | dtǔa | ticket | Rising Tone | ✓ |
+| High Class + Live + Long Vowel | สาม | sǎam | 3 | Rising Tone | ✓ |
+| High Class + Dead + Short Vowel | สิบ | sìp | 10 | Low Tone | ✓ |
+| High Class + Dead + Long Vowel | ถูก | tùuk | cheap | Low Tone | ✓ |
+| High Class + Mai Ek (่) | สี่ | sìi | 4 | Low Tone | ✓ |
+| High Class + Mai Tho (้) | ข้าว | kâow | rice | Falling Tone | ✓ |
+| Low Class + Live + Long Vowel | มา | maa | to come | Mid Tone | ✓ |
+| Low Class + Dead + Short Vowel | คะ | ká | polite particle (f.) | High Tone | ✓ |
+| Low Class + Dead + Long Vowel | มาก | mâak | very / a lot | Falling Tone | ✓ |
+| Low Class + Mai Ek (่) | แม่ | mâe | mother | Falling Tone | ✓ |
+| Low Class + Mai Tho (้) | น้ำ | naám | water | High Tone | ✓ |
 
 ---
 
@@ -594,7 +600,7 @@ npm run preview
 10. **Full-height cards** — all card types use `flex: 1` to fill the available vertical space, giving a uniform, modern full-screen feel. Cards use `width: calc(100vw - 32px); max-width: 400px` for near-full-width on mobile. Content is vertically centered via `justify-content: center`.
 11. **Opacity-based hide** — detail labels use CSS class `hidden` (opacity: 0) rather than conditional rendering, keeping card height stable when toggling visibility.
 12. **Tonal diacritic romanisation** — romanisations use vowel diacritics to encode tone (`à` low, `â` falling, `á` high, `ǎ` rising, unmarked = mid), matching common Thai-learning conventions. `toneMarkThai`/`toneMarkLatin` are optional fields; the tone-mark row in `Card` is **always rendered** but hidden via `hidden` CSS class when either `!showDetails` or `!item.toneMarkThai`, keeping card height fixed across all rule cards.
-13. **Audio playback** — `speakThai()` wraps `SpeechSynthesisUtterance` with `lang = 'th'`. When an `audioFile` string is provided, it plays the MP3 from `public/audio/` instead. Vocabulary and exercise cards pass `item.audio`; vowel cards pass their `audio` field (20 of 23 vowels have recordings). `getFlashcardAudio(item)` returns the audio filename for vowels (or `undefined` otherwise) and is used by both `FlashcardDeck` and `ImprovementDeck`.
+13. **Audio playback** — `speakThai()` wraps `SpeechSynthesisUtterance` with `lang = 'th'`. When an `audioFile` string is provided, it plays the MP3 from `public/audio/` instead. Vocabulary and exercise cards pass `item.audio`; vowel cards pass their `audio` field (20 of 24 non-rare vowels have recordings); tonal rule cards pass their `audio` field (all 17 rules have recordings). `getFlashcardAudio(item)` returns the audio filename for vowels and tonal rules (or `undefined` otherwise) and is used by both `FlashcardDeck` and `ImprovementDeck`.
 14. **Vowel deck mirrors consonant card** — `Vowel` cards reuse the same CSS classes as consonant cards; `LENGTH_COLORS` maps Short/Long/Diphthong to the same blue/green/orange palette as CLASS_COLORS. The `symbol` field always includes ก as the base consonant so the vowel form is visible. Play button speaks the `exampleWord` (with recorded audio when available) rather than the bare symbol. The example label shows `exampleWord (exampleRomanisation) = exampleMeaning` when romanisation is available, sourced from `vocabulary.ts` to ensure phonetic accuracy.
 15. **GitHub Actions CI/CD** — every push to `main` runs typecheck + tests, then builds and deploys to GitHub Pages. No manual deployment step.
 16. **Category selection pattern** — VocabularyDeck and ExerciseDeck both use the same category selection pattern: `selectedCategory` state starts `null`, `deck` starts empty, a category grid screen is shown first, `startDeck(cat)` filters the data array, deduplicates by stable display key, and shuffles the unique cards; "Back to Categories" returns to the selection screen. This keeps both deck components structurally identical while preventing repeated cards in a single run.

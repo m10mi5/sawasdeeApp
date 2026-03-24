@@ -162,6 +162,9 @@ function getFlashcardAudio(item: FlashcardItem): string | undefined {
     if (!('character' in item) && item.type === 'vowel') {
         return item.audio;
     }
+    if (!('character' in item) && item.type === 'rule') {
+        return item.audio;
+    }
     return undefined;
 }
 
