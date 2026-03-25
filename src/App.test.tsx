@@ -1087,15 +1087,18 @@ describe('Vowel deck rendering', () => {
         expect(getByTestId('vowel-length-label').classList.contains('hidden')).toBe(true);
         expect(getByTestId('vowel-name-label').classList.contains('hidden')).toBe(true);
         expect(getByTestId('vowel-romanisation-label').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('vowel-symbol-label').classList.contains('hidden')).toBe(true);
+        expect(getByTestId('vowel-example-label').classList.contains('hidden')).toBe(true);
     });
 
     it('shows closed syllable form alongside open form for vowels that have one', () => {
         const withClosed = VOWELS.filter(v => v.closedSymbol && !v.rare);
         expect(withClosed.length).toBeGreaterThan(0);
         // Render the Sara A card (first vowel, which has closedSymbol)
-        const { container } = render(<FlashcardDeck data={withClosed} onBack={vi.fn()} />);
-        const charEl = container.querySelector('.character');
-        expect(charEl?.textContent).toContain('/');
+        const { getByTestId, getByText } = render(<FlashcardDeck data={withClosed} onBack={vi.fn()} />);
+        fireEvent.click(getByText('Show Details'));
+        const symbolEl = getByTestId('vowel-symbol-label');
+        expect(symbolEl.textContent).toContain('/');
     });
 
     it('shows example romanisation in the example label when details are visible', () => {
@@ -1104,9 +1107,9 @@ describe('Vowel deck rendering', () => {
         const { getByTestId, getByText } = render(<FlashcardDeck data={withRomanisation} onBack={vi.fn()} />);
         fireEvent.click(getByText('Show Details'));
         const exampleEl = getByTestId('vowel-example-label');
-        const vowel = withRomanisation.find(v => exampleEl.textContent?.includes(v.exampleWord));
+        const vowel = withRomanisation.find(v => exampleEl.textContent?.includes(v.exampleRomanisation!));
         expect(vowel).toBeTruthy();
-        expect(exampleEl.textContent).toContain(`(${vowel!.exampleRomanisation})`);
+        expect(exampleEl.textContent).toContain(`${vowel!.exampleRomanisation} =`);
     });
 });
 

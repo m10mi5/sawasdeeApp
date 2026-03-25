@@ -64,7 +64,7 @@ body {
   font-weight: bold;
   text-align: center;
   margin-bottom: 4px;
-  line-height: 1.1;
+  line-height: 1.4;
 }
 
 .thai-name {
@@ -115,10 +115,8 @@ body {
   font-weight: bold;
   text-align: center;
   color: #111111;
-  line-height: 67px;
-  height: 67px;
+  line-height: 1.4;
   margin-bottom: 4px;
-  overflow: hidden;
 }
 
 .rule-romanisation {

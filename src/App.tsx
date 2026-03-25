@@ -550,15 +550,24 @@ function Card({ item, showDetails, footerControls }: CardProps) {
         return (
             <div className={`card ${footerControls ? 'with-inline-controls' : ''}`}>
                 <div className="card-content-area">
-                    <div className="character">
+                    <div className="character">{item.exampleWord}</div>
+                    <div
+                        data-testid="vowel-example-label"
+                        className={`name-label ${!showDetails ? 'hidden' : ''}`}
+                    >
+                        {item.exampleRomanisation ? `${item.exampleRomanisation} = ` : ''}{item.exampleMeaning.toLocaleLowerCase()}
+                    </div>
+                    <div
+                        data-testid="vowel-symbol-label"
+                        className={`meaning-label ${!showDetails ? 'hidden' : ''}`}
+                    >
                         {item.symbol}{item.closedSymbol ? ` / ${item.closedSymbol}` : ''}
                     </div>
-                    <div className="thai-name">{item.thaiName}</div>
                     <div
                         data-testid="vowel-name-label"
                         className={`name-label ${!showDetails ? 'hidden' : ''}`}
                     >
-                        {item.name.toLocaleLowerCase()}
+                        {item.thaiName} · {item.name.toLocaleLowerCase()}
                     </div>
                     <div
                         data-testid="vowel-romanisation-label"
@@ -572,12 +581,6 @@ function Card({ item, showDetails, footerControls }: CardProps) {
                         style={{ color: LENGTH_COLORS[item.length] }}
                     >
                         {item.length.toLocaleLowerCase()}
-                    </div>
-                    <div
-                        data-testid="vowel-example-label"
-                        className={`pair-label ${!showDetails ? 'hidden' : ''}`}
-                    >
-                        {item.exampleWord}{item.exampleRomanisation ? ` (${item.exampleRomanisation})` : ''} = {item.exampleMeaning.toLocaleLowerCase()}
                     </div>
                 </div>
                 {footerControls}

@@ -159,9 +159,9 @@ export const VOWELS: Vowel[] = [
     {
         symbol: 'เก', thaiName: 'สระ เอ', name: 'Sara Ee',
         romanisation: 'ee', length: 'Long',
-        exampleWord: 'เก่า', exampleMeaning: 'old (things)',
-        exampleRomanisation: 'gào',
-        audio: '2023-08-31-09-31-57session11-9.mp3',
+        exampleWord: 'เล่น', exampleMeaning: 'to play',
+        exampleRomanisation: 'lên',
+        audio: '2023-05-16-16-06-13intro-session1_108.mp3',
         type: 'vowel',
     },
     {
